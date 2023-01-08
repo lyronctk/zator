@@ -9,15 +9,22 @@ prove the execution of resnets w/ recursive snarks
 1. recurse w/ nova scotia 
 
 ## circuit 
-
 PUBLIC INPUTS 
-1. 
+1. $g_n$: $H(x)$
+1. $p_n$: $H(H(H(A_1 || b_1) || A_2 || b_1) ... || A_{n - 1} || b_{n - 1}))$ 
+1. $a_n$: Activations produced by layer $n - 1$
 
 PUBLIC OUTPUTS (symmetric with inputs)
-1. 
+1. $g_{n + 1}$: $g_n$
+1. $p_{n + 1}$: $H(p_n || A_n || b_n)$
+1. $a_{n + 1}$: Activations produced by evaluating current layer 
 
 PRIVATE INPUTS 
-1. 
+1. $A$: Matrix transformation
+1. $b$: Bias vector 
+1. $x$: Input data 
 
 LOGIC
-1. 
+1. Compute $a_{n + 1} = RELU(Ax + b)$
+1. Update running parameter hash $p_{n + 1}$
+1. Keep forwarding $g_n$

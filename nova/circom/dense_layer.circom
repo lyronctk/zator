@@ -7,6 +7,8 @@ template Main() {
     signal input c; 
 
     a + b === c;
+    
+    log("- Constants Satisfied -");
 }
 
 component main { public [ a, b ] } = Main();

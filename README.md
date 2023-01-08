@@ -2,8 +2,11 @@
 
 prove the execution of resnets w/ recursive snarks 
 
-## to-do 
-
+## to do 
+1. figure out quantization scheme of circomlib-ml
+1. train a quantized three layer FFNN on MNIST 
+1. circom circuit that is one matmul + relu combo 
+1. recurse w/ nova scotia 
 
 ## circuit 
 

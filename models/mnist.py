@@ -158,6 +158,12 @@ def main():
             "fc3_bias": (model.state_dict()['fc3.bias'].numpy()*(10**6)).round().astype(int).flatten().tolist()
         }
 
+        circuit_json =  {
+            "in": X1.numpy().astype(int).flatten().tolist(),
+            "weights": (model.state_dict()['fc1.weight'].numpy()*(10**6)).round().astype(int).flatten().tolist(),
+            "bias": (model.state_dict()['fc1.bias'].numpy()*(10**6)).round().astype(int).flatten().tolist(),
+        }
+
         out_json = {
             "scale": 10**-18,
             "out1": y1.numpy().flatten().tolist(),
@@ -167,6 +173,8 @@ def main():
         }
 
         json.dump({**in_json, **out_json}, json_file)
+        with open('json/single_dense.json', 'w') as json_file:
+            json.dump(circuit_json, json_file)
 
 
 if __name__ == '__main__':

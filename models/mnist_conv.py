@@ -190,7 +190,7 @@ def main():
             "tail": {
                 "W": (model.state_dict()['fc1.weight'].numpy()*(10**9)).round().astype(int).tolist(),
                 "b": (model.state_dict()['fc1.bias'].numpy()*(10**9)).round().astype(int).tolist(),
-                "a": y1.numpy().flatten().tolist()
+                "a": (y1.numpy()*(10**9)).astype(int).flatten().tolist()
             },
             "scale": 10**-9,
             "label": int(y1.argmax())
@@ -231,7 +231,7 @@ def main():
             "tail": {
                 "W": (model.state_dict()['fc1.weight'].numpy()*(10**9)).round().astype(int).tolist(),
                 "b": (model.state_dict()['fc1.bias'].numpy()*(10**9)).round().astype(int).tolist(),
-                "a": y2.numpy().flatten().tolist()
+                "a": (y2.numpy()*(10**9)).astype(int).flatten().tolist()
             },
             "scale": 10**-9,
             "label": int(y2.argmax())

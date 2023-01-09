@@ -1,6 +1,6 @@
 pragma circom 2.1.1;
 include "../../node_modules/circomlib-ml/circuits/Dense.circom";
-include "../../node_modules/circomlib-ml/circuits/ReLU.circom";
+include "../../node_modules/circomlib-ml/circuits/Poly.circom";
 
 // Template to run ReLu on Dense Layer outputs
 
@@ -15,12 +15,12 @@ template dense_layer(nInputs, nOutputs) {
     dense.weights <== weights;
     dense.bias <== bias;
 
-    component relu[nOutputs];
+    component poly[nOutputs];
     // Now ReLu all of our outputs
     for (var i = 0; i < nOutputs; i++) {
-        relu[i] = ReLU();
-        relu[i].in <== dense.out[i];
-        out[i] <== relu[i].out;
+        poly[i] = Poly(10**6);
+        poly[i].in <== dense.out[i];
+        out[i] <== poly[i].out;
     }
 }
 

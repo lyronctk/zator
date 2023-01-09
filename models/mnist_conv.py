@@ -20,6 +20,9 @@ class Net(nn.Module):
         self.fc1 = nn.Linear(28*28*4, 10)
 
     def forward(self, x):
+        return F.log_softmax(self.presoftmax(x), dim=1)
+
+    def presoftmax(self, x):
         # first conv will not be layered...
         x = self.conv1(x)
         x = F.relu(x)
@@ -30,20 +33,6 @@ class Net(nn.Module):
 
         # third conv will be layered
         x = self.conv3(x)
-        x = F.relu(x)
-
-        # this will be also saved
-        x = x.view(-1, 28*28*4)
-        x = self.fc1(x)
-        return F.log_softmax(x, dim=1)
-
-    def presoftmax(self, x):
-        # first conv will not be layered...
-        x = self.conv1(x)
-        x = F.relu(x)
-
-        # second conv will be layered
-        x = self.conv2(x)
         x = F.relu(x)
 
         # this will be also saved

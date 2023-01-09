@@ -156,15 +156,15 @@ def main():
                         (model.state_dict()['fc2.bias'].numpy()*(10**9)).round().astype(int).tolist(),    
                         (model.state_dict()['fc3.bias'].numpy()*(10**9)).round().astype(int).tolist()],
             "scale": 10**-9,
-            "out1": y1.numpy().flatten().tolist(),
-            "label1": int(y1.argmax())
+            "out": y1.numpy().flatten().tolist(),
+            "label": int(y1.argmax())
         }
 
         json.dump(in_json, json_file)
 
     with open('json/inp2_three_layer_mnist.json', 'w') as json_file:
         in_json = {
-            "in": X2.numpy().astype(int).flatten().tolist(),
+            "input": X2.numpy().astype(int).flatten().tolist(),
             "weights": [(model.state_dict()['fc1.weight'].numpy()*(10**9)).round().astype(int).tolist(),
                         (model.state_dict()['fc2.weight'].numpy()*(10**9)).round().astype(int).tolist(),
                         (model.state_dict()['fc3.weight'].numpy()*(10**9)).round().astype(int).tolist()],
@@ -172,8 +172,8 @@ def main():
                         (model.state_dict()['fc2.bias'].numpy()*(10**9)).round().astype(int).tolist(),    
                         (model.state_dict()['fc3.bias'].numpy()*(10**9)).round().astype(int).tolist()],
             "scale": 10**-9,
-            "out2": y2.numpy().flatten().tolist(),
-            "label2": int(y2.argmax())
+            "out": y2.numpy().flatten().tolist(),
+            "label": int(y2.argmax())
         }
 
         json.dump(in_json, json_file)

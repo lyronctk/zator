@@ -13,9 +13,9 @@ import json
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
-        self.fc1 = nn.Linear(28*28, 512)
-        self.fc2 = nn.Linear(512, 512)
-        self.fc3 = nn.Linear(512, 10)
+        self.fc1 = nn.Linear(28*28, 784)
+        self.fc2 = nn.Linear(784, 784)
+        self.fc3 = nn.Linear(784, 10)
 
     def forward(self, x):
         x = x.view(-1, 28*28)
@@ -146,35 +146,37 @@ def main():
     y2 = model.presoftmax(X2).detach()
 
     # export weights to json
-    with open('json/three_layer_mnist.json', 'w') as json_file:
+    with open('json/inp1_three_layer_mnist.json', 'w') as json_file:
         in_json = {
-            "in1": X1.numpy().astype(int).flatten().tolist(),
-            "in2": X2.numpy().astype(int).flatten().tolist(),
+            "in": X1.numpy().astype(int).flatten().tolist(),
             "fc1_weight": (model.state_dict()['fc1.weight'].numpy()*(10**6)).round().astype(int).flatten().tolist(),
             "fc1_bias": (model.state_dict()['fc1.bias'].numpy()*(10**6)).round().astype(int).flatten().tolist(),
             "fc2_weight": (model.state_dict()['fc2.weight'].numpy()*(10**6)).round().astype(int).flatten().tolist(),
             "fc2_bias": (model.state_dict()['fc2.bias'].numpy()*(10**6)).round().astype(int).flatten().tolist(),
             "fc3_weight": (model.state_dict()['fc3.weight'].numpy()*(10**6)).round().astype(int).flatten().tolist(),
-            "fc3_bias": (model.state_dict()['fc3.bias'].numpy()*(10**6)).round().astype(int).flatten().tolist()
-        }
-
-        circuit_json =  {
-            "in": X1.numpy().astype(int).flatten().tolist(),
-            "weights": (model.state_dict()['fc1.weight'].numpy()*(10**6)).round().astype(int).flatten().tolist(),
-            "bias": (model.state_dict()['fc1.bias'].numpy()*(10**6)).round().astype(int).flatten().tolist(),
-        }
-
-        out_json = {
+            "fc3_bias": (model.state_dict()['fc3.bias'].numpy()*(10**6)).round().astype(int).flatten().tolist(),
             "scale": 10**-18,
             "out1": y1.numpy().flatten().tolist(),
-            "label1": int(y1.argmax()),
+            "label1": int(y1.argmax())
+        }
+
+        json.dump(in_json, json_file)
+
+    with open('json/inp2_three_layer_mnist.json', 'w') as json_file:
+        in_json = {
+            "in": X2.numpy().astype(int).flatten().tolist(),
+            "fc1_weight": (model.state_dict()['fc1.weight'].numpy()*(10**6)).round().astype(int).flatten().tolist(),
+            "fc1_bias": (model.state_dict()['fc1.bias'].numpy()*(10**6)).round().astype(int).flatten().tolist(),
+            "fc2_weight": (model.state_dict()['fc2.weight'].numpy()*(10**6)).round().astype(int).flatten().tolist(),
+            "fc2_bias": (model.state_dict()['fc2.bias'].numpy()*(10**6)).round().astype(int).flatten().tolist(),
+            "fc3_weight": (model.state_dict()['fc3.weight'].numpy()*(10**6)).round().astype(int).flatten().tolist(),
+            "fc3_bias": (model.state_dict()['fc3.bias'].numpy()*(10**6)).round().astype(int).flatten().tolist(),
+            "scale": 10**-18,
             "out2": y2.numpy().flatten().tolist(),
             "label2": int(y2.argmax())
         }
 
-        json.dump({**in_json, **out_json}, json_file)
-        with open('json/single_dense.json', 'w') as json_file:
-            json.dump(circuit_json, json_file)
+        json.dump(in_json, json_file)
 
 
 if __name__ == '__main__':

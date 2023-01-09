@@ -17,7 +17,7 @@ PUBLIC INPUTS
 PUBLIC OUTPUTS (symmetric with inputs)
 1. $g_{n + 1}$: $g_n$, hash of the initial input
 1. $v_{n + 1}$: $H(a_n)$, hash of the activations produced by evaluating current layer
-1. $p_{n + 1}$: $H(p_n || H(a_n) || b_n)$, updated running parameter hash 
+1. $p_{n + 1}$: $H(p_n || H(A_n) || b_n)$, updated running parameter hash 
 
 PRIVATE INPUTS 
 1. $A$: Matrix transformation

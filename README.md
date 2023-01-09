@@ -12,7 +12,7 @@ prove the execution of resnets w/ recursive snarks
 PUBLIC INPUTS 
 1. $g_n$: $H(x)$, hash of the initial input 
 1. $p_n$: $H(H(H(A_1 || b_1) || A_2 || b_1) ... || A_{n - 1} || b_{n - 1}))$, accumulated parameter hash
-1. $v_n$: $H(a_{n - 1})$, hash of the activations of the previous layer, euqal to $g_n$ for layer 1 
+1. $v_n$: $H(a_{n - 1})$, hash of the activations of the previous layer, is equal to $g_n$ for layer 1 
 
 PUBLIC OUTPUTS (symmetric with inputs)
 1. $g_{n + 1}$: $g_n$, hash of the initial input

@@ -22,9 +22,11 @@ PUBLIC OUTPUTS (symmetric with inputs)
 PRIVATE INPUTS 
 1. $A$: Matrix transformation
 1. $b$: Bias vector 
-1. $x$: Input data 
+1. $x$: Input vector
 
 LOGIC
-1. Compute $v_{n + 1} = H(RELU(Ax + b))$
+1. Check that $H(x) = v_n$
+1. Compute $a_n = RELU(Ax + b)$ 
+1. Compute $v_{n + 1} = H(a_n)$
 1. Update running parameter hash $p_{n + 1}$
 1. Keep forwarding $g_n$

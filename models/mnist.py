@@ -65,7 +65,6 @@ def test(model, device, test_loader):
         test_loss, correct, len(test_loader.dataset),
         100. * correct / len(test_loader.dataset)))
 
-
 def main():
     # Training settings
     parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
@@ -139,50 +138,75 @@ def main():
 
     # get first test image
     X1 = next(iter(test_loader))[0][:1]
-    y1 = model.presoftmax(X1).detach()
 
-    # get second test image
-    X2 = next(iter(test_loader))[0][:1]
-    y2 = model.presoftmax(X2).detach()
+    activation = {}
+    def get_activation(name):
+        def hook(model, input, output):
+            activation[name] = output.detach()
+        return hook
+
+
+    model.fc1.register_forward_hook(get_activation('fc1'))
+    model.fc2.register_forward_hook(get_activation('fc2'))
+    model.fc3.register_forward_hook(get_activation('fc3'))
+
+    y1 = model.presoftmax(X1).detach()
 
     # export weights to json
     with open('json/inp1_three_layer_mnist.json', 'w') as json_file:
         in_json = {
-            "in": X1.numpy().astype(int).flatten().tolist(),
-            "fc1_weight": (model.state_dict()['fc1.weight'].numpy()*(10**6)).round().astype(int).flatten().tolist(),
-            "fc1_bias": (model.state_dict()['fc1.bias'].numpy()*(10**6)).round().astype(int).flatten().tolist(),
-            "fc2_weight": (model.state_dict()['fc2.weight'].numpy()*(10**6)).round().astype(int).flatten().tolist(),
-            "fc2_bias": (model.state_dict()['fc2.bias'].numpy()*(10**6)).round().astype(int).flatten().tolist(),
-            "fc3_weight": (model.state_dict()['fc3.weight'].numpy()*(10**6)).round().astype(int).flatten().tolist(),
-            "fc3_bias": (model.state_dict()['fc3.bias'].numpy()*(10**6)).round().astype(int).flatten().tolist(),
-            "scale": 10**-18,
-            "out1": y1.numpy().flatten().tolist(),
-            "label1": int(y1.argmax())
+            "x": X1.numpy().astype(int).flatten().tolist(),
+            "weights": [(model.state_dict()['fc1.weight'].numpy()*(10**9)).round().astype(int).tolist(),
+                        (model.state_dict()['fc2.weight'].numpy()*(10**9)).round().astype(int).tolist(),
+                        (model.state_dict()['fc3.weight'].numpy()*(10**9)).round().astype(int).tolist()],
+            "biases": [(model.state_dict()['fc1.bias'].numpy()*(10**9)).round().astype(int).tolist(),
+                        (model.state_dict()['fc2.bias'].numpy()*(10**9)).round().astype(int).tolist(),    
+                        (model.state_dict()['fc3.bias'].numpy()*(10**9)).round().astype(int).tolist()],
+            "activations": [(activation['fc1'].numpy()*(10**9)).astype(int).tolist()[0],
+                            (activation['fc2'].numpy()*(10**9)).astype(int).tolist()[0],
+                            (activation['fc3'].numpy()*(10**9)).astype(int).tolist()[0]],
+            "scale": 10**-9,
+            # "fwd_out": y1.numpy().flatten().tolist(),
+            "label": int(y1.argmax())
         }
 
         json.dump(in_json, json_file)
 
+    activation = {}
+
+    # get second test image
+    X2 = next(iter(test_loader))[0][:1]
+
+    model.fc1.register_forward_hook(get_activation('fc1'))
+    model.fc2.register_forward_hook(get_activation('fc2'))
+    model.fc3.register_forward_hook(get_activation('fc3'))
+
+    y2 = model.presoftmax(X2).detach()
+
     with open('json/inp2_three_layer_mnist.json', 'w') as json_file:
         in_json = {
-            "in": X2.numpy().astype(int).flatten().tolist(),
-            "fc1_weight": (model.state_dict()['fc1.weight'].numpy()*(10**6)).round().astype(int).flatten().tolist(),
-            "fc1_bias": (model.state_dict()['fc1.bias'].numpy()*(10**6)).round().astype(int).flatten().tolist(),
-            "fc2_weight": (model.state_dict()['fc2.weight'].numpy()*(10**6)).round().astype(int).flatten().tolist(),
-            "fc2_bias": (model.state_dict()['fc2.bias'].numpy()*(10**6)).round().astype(int).flatten().tolist(),
-            "fc3_weight": (model.state_dict()['fc3.weight'].numpy()*(10**6)).round().astype(int).flatten().tolist(),
-            "fc3_bias": (model.state_dict()['fc3.bias'].numpy()*(10**6)).round().astype(int).flatten().tolist(),
-            "scale": 10**-18,
-            "out2": y2.numpy().flatten().tolist(),
-            "label2": int(y2.argmax())
+            "x": X2.numpy().astype(int).flatten().tolist(),
+            "weights": [(model.state_dict()['fc1.weight'].numpy()*(10**9)).round().astype(int).tolist(),
+                        (model.state_dict()['fc2.weight'].numpy()*(10**9)).round().astype(int).tolist(),
+                        (model.state_dict()['fc3.weight'].numpy()*(10**9)).round().astype(int).tolist()],
+            "biases": [(model.state_dict()['fc1.bias'].numpy()*(10**9)).round().astype(int).tolist(),
+                        (model.state_dict()['fc2.bias'].numpy()*(10**9)).round().astype(int).tolist(),    
+                        (model.state_dict()['fc3.bias'].numpy()*(10**9)).round().astype(int).tolist()],
+            "activations": [(activation['fc1'].numpy()*(10**9)).astype(int).tolist()[0],
+                            (activation['fc2'].numpy()*(10**9)).astype(int).tolist()[0],
+                            (activation['fc3'].numpy()*(10**9)).astype(int).tolist()[0]],
+            "scale": 10**-9,
+            # "fwd_out": y2.numpy().flatten().tolist(),
+            "label": int(y2.argmax())
         }
 
         json.dump(in_json, json_file)
 
     with open('json/784_single_dense.json', 'w') as json_file:
         in_json = {
-            "in": X2.numpy().astype(int).flatten().tolist(),
-            "weights": (model.state_dict()['fc1.weight'].numpy()*(10**6)).round().astype(int).flatten().tolist(),
-            "bias": (model.state_dict()['fc1.bias'].numpy()*(10**6)).round().astype(int).flatten().tolist(),
+            "x": X2.numpy().astype(int).flatten().tolist(),
+            "weights": (model.state_dict()['fc1.weight'].numpy()*(10**6)).round().astype(int).tolist(),
+            "bias": (model.state_dict()['fc1.bias'].numpy()*(10**6)).round().astype(int).tolist(),
         }
 
         json.dump(in_json, json_file)

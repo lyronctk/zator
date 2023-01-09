@@ -16,7 +16,7 @@ PUBLIC INPUTS
 
 PUBLIC OUTPUTS (symmetric with inputs)
 1. $g_{n + 1}$: $g_n$, hash of the initial input
-1. $p_{n + 1}$: $H(p_n || A_n || b_n)$, updated running parameter hash 
+1. $p_{n + 1}$: $H(p_n || H(A_n) || H(b_n))$, updated running parameter hash 
 1. $v_{n + 1}$: $H(a_n)$, hash of the activations produced by evaluating current layer
 
 PRIVATE INPUTS 
@@ -30,3 +30,5 @@ LOGIC
 1. Compute $v_{n + 1} = H(a_n)$
 1. Update running parameter hash $p_{n + 1}$
 1. Keep forwarding $g_n$
+
+Note: within rust, divide activations at every dense layer by 10^9

@@ -102,6 +102,40 @@ fn construct_inputs(
     // }
 }
 
+fn recursion(
+    witness_gen: PathBuf,
+    r1cs: R1CS<F1>,
+    inputs: &RecursionInputs,
+    pp: &PublicParams<G1, G2, C1, C2>,
+    num_steps: usize,
+) -> RecursiveSNARK<G1, G2, C1, C2> {
+    println!("- Creating RecursiveSNARK");
+    let start = Instant::now();
+    let recursive_snark = create_recursive_circuit(
+        witness_gen,
+        r1cs,
+        inputs.all_private.clone(),
+        inputs.start_pub_primary.clone(),
+        &pp,
+    )
+    .unwrap();
+    println!("- Done ({:?})", start.elapsed());
+
+    println!("- Verifying RecursiveSNARK");
+    let start = Instant::now();
+    let res = recursive_snark.verify(
+        &pp,
+        num_steps,
+        inputs.start_pub_primary.clone(),
+        inputs.start_pub_secondary.clone(),
+    );
+    assert!(res.is_ok());
+    println!("- Output of final step: {:?}", res.unwrap().0);
+    println!("- Done ({:?})", start.elapsed());
+
+    recursive_snark
+}
+
 fn main() {
     let root = current_dir().unwrap();
     // let r1cs = load_r1cs(&root.join(R1CS_F));
@@ -120,6 +154,10 @@ fn main() {
 
     println!("== Constructing inputs");
     // let inputs = construct_inputs(&fwd_pass, num_steps);
+    println!("==");
+
+    println!("== Executing recursion using Nova");
+    // let recursive_snark = recursion(witness_gen, r1cs, &inputs, &pp, num_steps);
     println!("==");
 
 

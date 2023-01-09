@@ -33,7 +33,7 @@ template MimcHashMatrix4D(rows, cols, depth, dim4length) {
         for (var col = 0; col < cols; col++) {
             for (var dep = 0; dep < depth; dep++) {
                 for (var d4 = 0; d4 < dim4length; d4++) {
-                    var indexFlattenedVector = (row * cols * depth * dim4length) + (col * depth * dim4length) + (dep * dim4length) + dim4length;
+                    var indexFlattenedVector = (row * cols * depth * dim4length) + (col * depth * dim4length) + (dep * dim4length) + d4;
                     mimc.ins[indexFlattenedVector] <== matrix[row][col][dep][d4];
                 }
             }

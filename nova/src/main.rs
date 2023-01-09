@@ -29,7 +29,7 @@ const FWD_PASS_F: &str = "../models/json/inp1_two_conv_mnist.json";
 
 #[derive(Debug, Deserialize)]
 struct ConvLayer {
-    W: Vec<Vec<Vec<i64>>>,
+    W: Vec<Vec<Vec<Vec<i64>>>>,
     b: Vec<i64>,
     a: Vec<Vec<Vec<i64>>>,
 }

@@ -173,18 +173,18 @@ def main():
             "head": {
                 "W": (model.state_dict()['conv1.weight'].numpy()*(10**9)).round().astype(int).tolist(),
                 "b": (model.state_dict()['conv1.bias'].numpy()*(10**9)).round().astype(int).tolist(),
-                "a": activation['conv1'].numpy().astype(int).tolist()
+                "a": activation['conv1'].numpy().astype(int).tolist()[0]
             },
             "backbone": [
                 {
                     "W": (model.state_dict()['conv2.weight'].numpy()*(10**9)).round().astype(int).tolist(),
                     "b": (model.state_dict()['conv2.bias'].numpy()*(10**9)).round().astype(int).tolist(),
-                    "a": activation['conv2'].numpy().astype(int).tolist()
+                    "a": activation['conv2'].numpy().astype(int).tolist()[0]
                 },
                 {
                     "W": (model.state_dict()['conv3.weight'].numpy()*(10**9)).round().astype(int).tolist(),
                     "b": (model.state_dict()['conv3.bias'].numpy()*(10**9)).round().astype(int).tolist(),
-                    "a": activation['conv3'].numpy().astype(int).tolist()
+                    "a": activation['conv3'].numpy().astype(int).tolist()[0]
                 }
             ],
             "tail": {
@@ -214,18 +214,18 @@ def main():
             "head": {
                 "W": (model.state_dict()['conv1.weight'].numpy()*(10**9)).round().astype(int).tolist(),
                 "b": (model.state_dict()['conv1.bias'].numpy()*(10**9)).round().astype(int).tolist(),
-                "a": activation['conv1'].numpy().astype(int).tolist()
+                "a": activation['conv1'].numpy().astype(int).tolist()[0]
             },
             "backbone": [
                 {
                     "W": (model.state_dict()['conv2.weight'].numpy()*(10**9)).round().astype(int).tolist(),
                     "b": (model.state_dict()['conv2.bias'].numpy()*(10**9)).round().astype(int).tolist(),
-                    "a": activation['conv2'].numpy().astype(int).tolist()
+                    "a": activation['conv2'].numpy().astype(int).tolist()[0]
                 },
                 {
                     "W": (model.state_dict()['conv3.weight'].numpy()*(10**9)).round().astype(int).tolist(),
                     "b": (model.state_dict()['conv3.bias'].numpy()*(10**9)).round().astype(int).tolist(),
-                    "a": activation['conv3'].numpy().astype(int).tolist()
+                    "a": activation['conv3'].numpy().astype(int).tolist()[0]
                 }
             ],
             "tail": {

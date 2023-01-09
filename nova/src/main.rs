@@ -25,15 +25,37 @@ type S2 = nova_snark::spartan_with_ipa_pc::RelaxedR1CSSNARK<G2>;
 
 const R1CS_F: &str = "./circom/out/dense_layer.r1cs";
 const WASM_F: &str = "./circom/out/dense_layer.wasm";
-const FWD_PASS_F: &str = "../models/json/inp1_three_layer_mnist.json";
+const FWD_PASS_F: &str = "../models/json/inp1_two_conv_mnist.json";
+
+#[derive(Debug, Deserialize)]
+struct ConvLayer {
+    // NOTE: Non-standard transposes on matrices
+    // dims: [kernelSize x kernelSize x nChannels x nFilters]
+    W: Vec<Vec<Vec<Vec<i64>>>>,
+    // dims: [nFilters]
+    b: Vec<i64>,
+    // dims: [nRows x nCols x nChannels]
+    a: Vec<Vec<Vec<i64>>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct DenseLayer {
+    // NOTE: Non-standard transposes on matrices
+    // dims: [nInputs x nOutput], note non-standard transpose
+    W: Vec<Vec<i64>>,
+    // dims: [nOutputs]
+    b: Vec<i64>,
+    // dims: [nOutputs]
+    a: Vec<i64>,
+}
 
 #[derive(Debug, Deserialize)]
 struct ForwardPass {
     x: Vec<u64>,
-    weights: Vec<Vec<Vec<i64>>>,
-    biases: Vec<Vec<i64>>,
+    head: ConvLayer, 
+    backbone: Vec<ConvLayer>,
+    tail: DenseLayer,
     scale: f64,
-    activations: Vec<Vec<i64>>,
     label: u64
 }
 
@@ -82,12 +104,10 @@ fn construct_inputs(
 ) {
     // let mut private_inputs = Vec::new();
     // for i in 0..num_steps {
-    //     let inp = ;
     //     let priv_in = HashMap::from([
-    //         (String::from("A"), json!(fwd_pass.weights[i])),
-    //         (String::from("b"), json!(fwd_pass.biases[i])),
-    //         (String::from("x"), json!(solved_maze.width)),
-    //         (String::from("move"), json!([dr, dc])),
+    //         (String::from("x"), json!()),
+    //         (String::from("W"), json!(fwd_pass.backbone[i].W)),
+    //         (String::from("b"), json!())
     //     ]);
     //     private_inputs.push(priv_in);
     // }
@@ -196,7 +216,8 @@ fn main() {
 
     println!("== Loading forward pass");
     let fwd_pass = read_fwd_pass(FWD_PASS_F);
-    let num_steps = fwd_pass.activations.len() + 1;
+    let num_steps = fwd_pass.backbone.len();
+    println!("{:?}", fwd_pass);
     println!("==");
 
     println!("== Creating circuit public parameters");
@@ -204,7 +225,7 @@ fn main() {
     println!("==");
 
     println!("== Constructing inputs");
-    // let inputs = construct_inputs(&fwd_pass, num_steps);
+    let inputs = construct_inputs(&fwd_pass, num_steps);
     println!("==");
 
     println!("== Executing recursion using Nova");

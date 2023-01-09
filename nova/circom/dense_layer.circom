@@ -51,6 +51,7 @@ template RecursiveDenseLayer(nInputs, nOutputs) {
     mimc_bias_vector.ins <== bias;
     mimc_bias_vector.k <== 0;
     bias_vector_hash <== mimc_bias_vector.outs[0];
+    
     // Now p_{n+1} = Hash(p_n, Hash(Weights matrix), hash(bias vector))
     component pn_compositive_mimc = MiMCSponge(3, 220, 1);
     pn_compositive_mimc.ins[0] <== step_in[1];

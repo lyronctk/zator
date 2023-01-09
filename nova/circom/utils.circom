@@ -7,7 +7,7 @@ template MimcHashMatrix(n) {
     signal input matrix[n][n];
     signal output hash;
 
-    component mimc = MiMCSponge(n * n, 220, 1);
+    component mimc = MiMCSponge(n * n, 5, 1);
     mimc.k <== 0;
 
     for (var i = 0; i < n; i++) {

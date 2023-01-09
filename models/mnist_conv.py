@@ -28,6 +28,10 @@ class Net(nn.Module):
         x = self.conv2(x)
         x = F.relu(x)
 
+        # third conv will be layered
+        x = self.conv3(x)
+        x = F.relu(x)
+
         # this will be also saved
         x = x.view(-1, 28*28*4)
         x = self.fc1(x)
@@ -167,9 +171,9 @@ def main():
             activation[name] = output.detach()
         return hook
 
-    model.fc1.register_forward_hook(get_activation('conv1'))
-    model.fc1.register_forward_hook(get_activation('conv2'))
-    model.fc1.register_forward_hook(get_activation('conv3'))
+    model.conv1.register_forward_hook(get_activation('conv1'))
+    model.conv2.register_forward_hook(get_activation('conv2'))
+    model.conv3.register_forward_hook(get_activation('conv3'))
 
     y1 = model.presoftmax(X1).detach()
 
@@ -209,9 +213,9 @@ def main():
     # get second test image
     X2 = next(iter(test_loader))[0][:1]
 
-    model.fc1.register_forward_hook(get_activation('conv1'))
-    model.fc1.register_forward_hook(get_activation('conv2'))
-    model.fc1.register_forward_hook(get_activation('conv3'))
+    model.conv1.register_forward_hook(get_activation('conv1'))
+    model.conv2.register_forward_hook(get_activation('conv2'))
+    model.conv3.register_forward_hook(get_activation('conv3'))
 
     y2 = model.presoftmax(X2).detach()
 

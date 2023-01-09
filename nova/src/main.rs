@@ -25,18 +25,18 @@ type S2 = nova_snark::spartan_with_ipa_pc::RelaxedR1CSSNARK<G2>;
 
 const R1CS_F: &str = "./circom/out/dense_layer.r1cs";
 const WASM_F: &str = "./circom/out/dense_layer.wasm";
-const FWD_PASS_F: &str = "../models/json/inp1_three_layer_mnist.json";
+const FWD_PASS_F: &str = "../models/json/inp1_two_conv_mnist.json";
 
 #[derive(Debug, Deserialize)]
 struct ConvLayer {
     W: Vec<Vec<Vec<i64>>>,
     b: Vec<i64>,
-    a: Vec<i64>,
+    a: Vec<Vec<Vec<i64>>>,
 }
 
 #[derive(Debug, Deserialize)]
 struct DenseLayer {
-    W: Vec<Vec<Vec<i64>>>,
+    W: Vec<Vec<i64>>,
     b: Vec<i64>,
     a: Vec<i64>,
 }
@@ -210,7 +210,7 @@ fn main() {
 
     println!("== Loading forward pass");
     let fwd_pass = read_fwd_pass(FWD_PASS_F);
-    let num_steps = fwd_pass.activations.len() + 1;
+    // let num_steps = fwd_pass.backbone.len();
     println!("{:?}", fwd_pass);
     println!("==");
 

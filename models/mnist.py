@@ -178,6 +178,15 @@ def main():
 
         json.dump(in_json, json_file)
 
+    with open('json/784_single_dense.json', 'w') as json_file:
+        in_json = {
+            "in": X2.numpy().astype(int).flatten().tolist(),
+            "weights": (model.state_dict()['fc1.weight'].numpy()*(10**6)).round().astype(int).flatten().tolist(),
+            "bias": (model.state_dict()['fc1.bias'].numpy()*(10**6)).round().astype(int).flatten().tolist(),
+        }
+
+        json.dump(in_json, json_file)
+
 
 if __name__ == '__main__':
     main()

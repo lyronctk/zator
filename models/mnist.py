@@ -65,7 +65,6 @@ def test(model, device, test_loader):
         test_loss, correct, len(test_loader.dataset),
         100. * correct / len(test_loader.dataset)))
 
-
 def main():
     # Training settings
     parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
@@ -139,11 +138,19 @@ def main():
 
     # get first test image
     X1 = next(iter(test_loader))[0][:1]
-    y1 = model.presoftmax(X1).detach()
 
-    # get second test image
-    X2 = next(iter(test_loader))[0][:1]
-    y2 = model.presoftmax(X2).detach()
+    activation = {}
+    def get_activation(name):
+        def hook(model, input, output):
+            activation[name] = output.detach()
+        return hook
+
+
+    model.fc1.register_forward_hook(get_activation('fc1'))
+    model.fc2.register_forward_hook(get_activation('fc2'))
+    model.fc3.register_forward_hook(get_activation('fc3'))
+
+    y1 = model.presoftmax(X1).detach()
 
     # export weights to json
     with open('json/inp1_three_layer_mnist.json', 'w') as json_file:
@@ -155,12 +162,26 @@ def main():
             "biases": [(model.state_dict()['fc1.bias'].numpy()*(10**9)).round().astype(int).tolist(),
                         (model.state_dict()['fc2.bias'].numpy()*(10**9)).round().astype(int).tolist(),    
                         (model.state_dict()['fc3.bias'].numpy()*(10**9)).round().astype(int).tolist()],
+            "activations": [(activation['fc1'].numpy()*(10**9)).astype(int).tolist()[0],
+                            (activation['fc2'].numpy()*(10**9)).astype(int).tolist()[0],
+                            (activation['fc3'].numpy()*(10**9)).astype(int).tolist()[0]],
             "scale": 10**-9,
             "fwd_out": y1.numpy().flatten().tolist(),
             "label": int(y1.argmax())
         }
 
         json.dump(in_json, json_file)
+
+    activation = {}
+
+    # get second test image
+    X2 = next(iter(test_loader))[0][:1]
+
+    model.fc1.register_forward_hook(get_activation('fc1'))
+    model.fc2.register_forward_hook(get_activation('fc2'))
+    model.fc3.register_forward_hook(get_activation('fc3'))
+
+    y2 = model.presoftmax(X2).detach()
 
     with open('json/inp2_three_layer_mnist.json', 'w') as json_file:
         in_json = {
@@ -171,6 +192,9 @@ def main():
             "biases": [(model.state_dict()['fc1.bias'].numpy()*(10**9)).round().astype(int).tolist(),
                         (model.state_dict()['fc2.bias'].numpy()*(10**9)).round().astype(int).tolist(),    
                         (model.state_dict()['fc3.bias'].numpy()*(10**9)).round().astype(int).tolist()],
+            "activations": [(activation['fc1'].numpy()*(10**9)).astype(int).tolist()[0],
+                            (activation['fc2'].numpy()*(10**9)).astype(int).tolist()[0],
+                            (activation['fc3'].numpy()*(10**9)).astype(int).tolist()[0]],
             "scale": 10**-9,
             "fwd_out": y2.numpy().flatten().tolist(),
             "label": int(y2.argmax())

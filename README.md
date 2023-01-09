@@ -10,14 +10,14 @@ prove the execution of resnets w/ recursive snarks
 
 ## circuit 
 PUBLIC INPUTS 
-1. $g_n$: $H(x)$
-1. $p_n$: $H(H(H(A_1 || b_1) || A_2 || b_1) ... || A_{n - 1} || b_{n - 1}))$ 
-1. $a_n$: Activations produced by layer $n - 1$
+1. $g_n$: $H(x)$, hash of the initial input 
+1. $p_n$: $H(H(H(A_1 || b_1) || A_2 || b_1) ... || A_{n - 1} || b_{n - 1}))$, accumulated parameter hash
+1. $v_n$: $H(a_{n - 1})$, hash of the activations of the previous layer, euqal to $g_n$ for layer 1 
 
 PUBLIC OUTPUTS (symmetric with inputs)
-1. $g_{n + 1}$: $g_n$
-1. $p_{n + 1}$: $H(p_n || A_n || b_n)$
-1. $a_{n + 1}$: Activations produced by evaluating current layer 
+1. $g_{n + 1}$: $g_n$, hash of the initial input
+1. $p_{n + 1}$: $H(p_n || A_n || b_n)$, updated running parameter hash 
+1. $v_{n + 1}$: $H(a_n)$, hash of the activations produced by evaluating current layer
 
 PRIVATE INPUTS 
 1. $A$: Matrix transformation
@@ -25,6 +25,6 @@ PRIVATE INPUTS
 1. $x$: Input data 
 
 LOGIC
-1. Compute $a_{n + 1} = RELU(Ax + b)$
+1. Compute $v_{n + 1} = H(RELU(Ax + b))$
 1. Update running parameter hash $p_{n + 1}$
 1. Keep forwarding $g_n$

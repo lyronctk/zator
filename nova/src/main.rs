@@ -43,6 +43,9 @@ struct RecursionInputs {
     start_pub_secondary: Vec<F2>,
 }
 
+/*
+ * Read in the forward pass (i.e. parameters and inputs/outputs for each layer).
+ */
 fn read_fwd_pass(f: &str) -> ForwardPass {
     let f = File::open(f).unwrap();
     let rdr = BufReader::new(f);
@@ -50,6 +53,9 @@ fn read_fwd_pass(f: &str) -> ForwardPass {
     serde_json::from_reader(rdr).unwrap()
 }
 
+/*
+ * Generates public parameters for Nova.
+ */
 fn setup(r1cs: &R1CS<F1>) -> PublicParams<G1, G2, C1, C2> {
     let pp = create_public_params(r1cs.clone());
 
@@ -65,6 +71,11 @@ fn setup(r1cs: &R1CS<F1>) -> PublicParams<G1, G2, C1, C2> {
     pp
 }
 
+/*
+ * Constructs the inputs necessary for recursion. This includes 1) private
+ * inputs for every step, and 2) initial public inputs for the first step of the
+ * primary & secondary circuits.
+ */
 fn construct_inputs(
     fwd_pass: &ForwardPass,
     num_steps: usize,
@@ -102,6 +113,11 @@ fn construct_inputs(
     // }
 }
 
+/*
+ * Uses Nova's folding scheme to produce a single relaxed R1CS instance that,
+ * when satisfied, proves the proper execution of every step in the recursion.
+ * Can be thought of as a pre-processing step for the final SNARK.
+ */
 fn recursion(
     witness_gen: PathBuf,
     r1cs: R1CS<F1>,
@@ -136,6 +152,10 @@ fn recursion(
     recursive_snark
 }
 
+/*
+ * Uses Spartan w/ IPA-PC to prove knowledge of the output of Nova (a satisfied
+ * relaxed R1CS instance) in a proof that can be verified with sub-linear cost.
+ */
 fn spartan(
     pp: &PublicParams<G1, G2, C1, C2>,
     recursive_snark: RecursiveSNARK<G1, G2, C1, C2>,

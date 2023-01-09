@@ -7,6 +7,7 @@ import torch.optim as optim
 from torchvision import datasets, transforms
 from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import Dataset
+import matplotlib.pyplot as plt
 
 import json
 
@@ -165,24 +166,28 @@ def main():
     model.conv3.register_forward_hook(get_activation('conv3'))
 
     y1 = model.presoftmax(X1).detach()
+    
+    print((model.state_dict()['conv1.weight'].numpy()*(10**9)).round().astype(int).T.shape)
+    print((model.state_dict()['conv2.weight'].numpy()*(10**9)).round().astype(int).T.shape)
+    print((model.state_dict()['conv3.weight'].numpy()*(10**9)).round().astype(int).T.shape)
 
     # export weights to json
     with open('json/inp1_two_conv_mnist.json', 'w') as json_file:
         in_json = {
             "x": X1.numpy().astype(int).flatten().tolist(),
             "head": {
-                "W": (model.state_dict()['conv1.weight'].numpy()*(10**9)).round().astype(int).tolist(),
+                "W": (model.state_dict()['conv1.weight'].numpy()*(10**9)).round().astype(int).T.tolist(),
                 "b": (model.state_dict()['conv1.bias'].numpy()*(10**9)).round().astype(int).tolist(),
                 "a": activation['conv1'].numpy().astype(int).tolist()[0]
             },
             "backbone": [
                 {
-                    "W": (model.state_dict()['conv2.weight'].numpy()*(10**9)).round().astype(int).tolist(),
+                    "W": (model.state_dict()['conv2.weight'].numpy()*(10**9)).round().astype(int).T.tolist(),
                     "b": (model.state_dict()['conv2.bias'].numpy()*(10**9)).round().astype(int).tolist(),
                     "a": activation['conv2'].numpy().astype(int).tolist()[0]
                 },
                 {
-                    "W": (model.state_dict()['conv3.weight'].numpy()*(10**9)).round().astype(int).tolist(),
+                    "W": (model.state_dict()['conv3.weight'].numpy()*(10**9)).round().astype(int).T.tolist(),
                     "b": (model.state_dict()['conv3.bias'].numpy()*(10**9)).round().astype(int).tolist(),
                     "a": activation['conv3'].numpy().astype(int).tolist()[0]
                 }

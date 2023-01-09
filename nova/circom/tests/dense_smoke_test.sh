@@ -6,7 +6,7 @@
 circom ../dense_layer.circom --r1cs --wasm # --prime vesta
 
 # Generate the witness, primarily as a smoke test for the circuit
-node dense_layer_js/generate_witness.js dense_layer_js/dense_layer.wasm smoke_test.json dense_layer.wtns
+node dense_layer_js/generate_witness.js dense_layer_js/dense_layer.wasm dense_smoke_test.json dense_layer.wtns
 
 # Clean up
 mv dense_layer_js/dense_layer.wasm ../out

@@ -10,9 +10,12 @@ include "utils.circom";
 template ConvolutionalLayer(nRows, nCols, nChannels, nFilters, kernelSize, strides) {
 
     signal input step_in[3];
-    signal input in[nRows][nCols][nChannels];
-    signal input weights[kernelSize][kernelSize][nChannels][nFilters];
-    signal input bias[nFilters];
+    // Input to current layer
+    signal input x[nRows][nCols][nChannels];
+    // Weights for current layer
+    signal input W[kernelSize][kernelSize][nChannels][nFilters];
+    // Bias vector
+    signal input b[nFilters];
     var convLayerOutputRows = (nRows-kernelSize)\strides+1;
     var convLayerOutputCols = (nCols-kernelSize)\strides+1;
     var convLayerOutputDepth = nFilters
@@ -26,18 +29,17 @@ template ConvolutionalLayer(nRows, nCols, nChannels, nFilters, kernelSize, strid
     step_out[0] <== step_in[0];
 
     // 1. Check that H(x) = v_n
-    // v_n is H(a_{n-1}) where (a_{n}) is the output of the Convolutional Layer (the activations) that is flattened and run through ReLu
-    component mimc_previous_activations = MiMCSponge(nInputs, 220, 1);
-    mimc_previous_activations.ins <== in;
-    mimc_previous_activations.k <== 0;
+    // v_n is H(a_{n-1}) where (a_{n - 1}) is the output of the previous Convolutional Layer (the activations) that is flattened and run through ReLu
+    component mimc_previous_activations = MimcHashMatrix3D(nRows, nCols, nChannels);
+    mimc_previous_activations.matrix <== x;
     step_in[2] === mimc_previous_activations.outs[0];
 
     // 2. Generate Convolutional Network Output, Relu elements of 3D Matrix, and 
     // place the output into a flattened activations vector
     component convLayer = Conv2D(nRows, nCols, nChannels, nFilters, kernelSize, strides);
-    convLayer.in <== in;
-    convLayer.weights <== weights;
-    convLayer.bias <== bias;
+    convLayer.in <== x;
+    convLayer.weights <== W;
+    convLayer.bias <== b;
 
     component relu[convLayerOutputNumElements];
     // Now ReLu all of the elements in the 3D Matrix output of our Conv2D Layer
@@ -54,12 +56,12 @@ template ConvolutionalLayer(nRows, nCols, nChannels, nFilters, kernelSize, strid
     }
 
     // 3. Update running hash parameter p_{n+1}
-    component mimc_weights_matrix = MimcHashMatrix(kernelSize, kernelSize, nChannels, nFilters);
-    mimc_weights_matrix.matrix <== weights;
+    component mimc_weights_matrix = MimcHashMatrix4D(kernelSize, kernelSize, nChannels, nFilters);
+    mimc_weights_matrix.matrix <== W;
     weights_matrix_hash <== mimc_weights_matrix.hash;
 
     component mimc_bias_vector = MiMCSponge(nFilters, 220, 1);
-    mimc_bias_vector.ins <== bias;
+    mimc_bias_vector.ins <== b;
     mimc_bias_vector.k <== 0;
     bias_vector_hash <== mimc_bias_vector.outs[0];
     

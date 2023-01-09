@@ -5,6 +5,11 @@ include "../../node_modules/circomlib-ml/circuits/Poly.circom";
 // Template to run ReLu on Dense Layer outputs
 
 template dense_layer(nInputs, nOutputs) {
+
+    signal input step_in[3];
+    signal output step_out[3];
+
+
     signal input in[nInputs];
     signal input weights[nInputs][nOutputs];
     signal input bias[nOutputs];
@@ -24,4 +29,4 @@ template dense_layer(nInputs, nOutputs) {
     }
 }
 
-component main = dense_layer(784, 512);
+component main { public step_in } = dense_layer(784, 512);

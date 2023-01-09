@@ -149,13 +149,13 @@ def main():
     with open('json/inp1_three_layer_mnist.json', 'w') as json_file:
         in_json = {
             "in": X1.numpy().astype(int).flatten().tolist(),
-            "weights": [(model.state_dict()['fc1.weight'].numpy()*(10**6)).round().astype(int).tolist(),
-                        (model.state_dict()['fc2.weight'].numpy()*(10**6)).round().astype(int).tolist(),
-                        (model.state_dict()['fc3.weight'].numpy()*(10**6)).round().astype(int).tolist()],
-            "biases": [(model.state_dict()['fc1.bias'].numpy()*(10**6)).round().astype(int).tolist(),
-                        (model.state_dict()['fc2.bias'].numpy()*(10**6)).round().astype(int).tolist(),    
-                        (model.state_dict()['fc3.bias'].numpy()*(10**6)).round().astype(int).tolist()],
-            "scale": 10**-18,
+            "weights": [(model.state_dict()['fc1.weight'].numpy()*(10**9)).round().astype(int).tolist(),
+                        (model.state_dict()['fc2.weight'].numpy()*(10**9)).round().astype(int).tolist(),
+                        (model.state_dict()['fc3.weight'].numpy()*(10**9)).round().astype(int).tolist()],
+            "biases": [(model.state_dict()['fc1.bias'].numpy()*(10**9)).round().astype(int).tolist(),
+                        (model.state_dict()['fc2.bias'].numpy()*(10**9)).round().astype(int).tolist(),    
+                        (model.state_dict()['fc3.bias'].numpy()*(10**9)).round().astype(int).tolist()],
+            "scale": 10**-9,
             "out1": y1.numpy().flatten().tolist(),
             "label1": int(y1.argmax())
         }
@@ -165,13 +165,13 @@ def main():
     with open('json/inp2_three_layer_mnist.json', 'w') as json_file:
         in_json = {
             "in": X2.numpy().astype(int).flatten().tolist(),
-            "weights": [(model.state_dict()['fc1.weight'].numpy()*(10**6)).round().astype(int).tolist(),
-                        (model.state_dict()['fc2.weight'].numpy()*(10**6)).round().astype(int).tolist(),
-                        (model.state_dict()['fc3.weight'].numpy()*(10**6)).round().astype(int).tolist()],
-            "biases": [(model.state_dict()['fc1.bias'].numpy()*(10**6)).round().astype(int).tolist(),
-                        (model.state_dict()['fc2.bias'].numpy()*(10**6)).round().astype(int).tolist(),    
-                        (model.state_dict()['fc3.bias'].numpy()*(10**6)).round().astype(int).tolist()],
-            "scale": 10**-18,
+            "weights": [(model.state_dict()['fc1.weight'].numpy()*(10**9)).round().astype(int).tolist(),
+                        (model.state_dict()['fc2.weight'].numpy()*(10**9)).round().astype(int).tolist(),
+                        (model.state_dict()['fc3.weight'].numpy()*(10**9)).round().astype(int).tolist()],
+            "biases": [(model.state_dict()['fc1.bias'].numpy()*(10**9)).round().astype(int).tolist(),
+                        (model.state_dict()['fc2.bias'].numpy()*(10**9)).round().astype(int).tolist(),    
+                        (model.state_dict()['fc3.bias'].numpy()*(10**9)).round().astype(int).tolist()],
+            "scale": 10**-9,
             "out2": y2.numpy().flatten().tolist(),
             "label2": int(y2.argmax())
         }

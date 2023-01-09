@@ -30,3 +30,5 @@ LOGIC
 1. Compute $v_{n + 1} = H(a_n)$
 1. Update running parameter hash $p_{n + 1}$
 1. Keep forwarding $g_n$
+
+Note: within rust, divide activations at every dense layer by 10^9

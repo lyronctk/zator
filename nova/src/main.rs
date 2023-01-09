@@ -136,6 +136,37 @@ fn recursion(
     recursive_snark
 }
 
+fn spartan(
+    pp: &PublicParams<G1, G2, C1, C2>,
+    recursive_snark: RecursiveSNARK<G1, G2, C1, C2>,
+    num_steps: usize,
+    inputs: &RecursionInputs,
+) -> CompressedSNARK<G1, G2, C1, C2, S1, S2> {
+    println!("- Generating");
+    let start = Instant::now();
+    type S1 = nova_snark::spartan_with_ipa_pc::RelaxedR1CSSNARK<G1>;
+    type S2 = nova_snark::spartan_with_ipa_pc::RelaxedR1CSSNARK<G2>;
+    let res =
+        CompressedSNARK::<_, _, _, _, S1, S2>::prove(&pp, &recursive_snark);
+    assert!(res.is_ok());
+    println!("- Done ({:?})", start.elapsed());
+    let compressed_snark = res.unwrap();
+    println!("- Proof: {:?}", compressed_snark.f_W_snark_primary);
+
+    println!("- Verifying");
+    let start = Instant::now();
+    let res = compressed_snark.verify(
+        &pp,
+        num_steps,
+        inputs.start_pub_primary.clone(),
+        inputs.start_pub_secondary.clone(),
+    );
+    assert!(res.is_ok());
+    println!("- Done ({:?})", start.elapsed());
+
+    compressed_snark
+}
+
 fn main() {
     let root = current_dir().unwrap();
     // let r1cs = load_r1cs(&root.join(R1CS_F));
@@ -160,6 +191,9 @@ fn main() {
     // let recursive_snark = recursion(witness_gen, r1cs, &inputs, &pp, num_steps);
     println!("==");
 
+    println!("== Producing a CompressedSNARK using Spartan w/ IPA-PC");
+    // let _compressed_snark = spartan(&pp, recursive_snark, num_steps, &inputs);
+    println!("==");
 
     println!("** Total time to completion: ({:?})", start.elapsed());
 }

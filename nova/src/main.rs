@@ -28,12 +28,26 @@ const WASM_F: &str = "./circom/out/dense_layer.wasm";
 const FWD_PASS_F: &str = "../models/json/inp1_three_layer_mnist.json";
 
 #[derive(Debug, Deserialize)]
+struct ConvLayer {
+    W: Vec<Vec<Vec<i64>>>,
+    b: Vec<i64>,
+    a: Vec<i64>,
+}
+
+#[derive(Debug, Deserialize)]
+struct DenseLayer {
+    W: Vec<Vec<Vec<i64>>>,
+    b: Vec<i64>,
+    a: Vec<i64>,
+}
+
+#[derive(Debug, Deserialize)]
 struct ForwardPass {
     x: Vec<u64>,
-    weights: Vec<Vec<Vec<i64>>>,
-    biases: Vec<Vec<i64>>,
+    head: ConvLayer, 
+    backbone: Vec<ConvLayer>,
+    tail: DenseLayer,
     scale: f64,
-    activations: Vec<Vec<i64>>,
     label: u64
 }
 
@@ -197,6 +211,7 @@ fn main() {
     println!("== Loading forward pass");
     let fwd_pass = read_fwd_pass(FWD_PASS_F);
     let num_steps = fwd_pass.activations.len() + 1;
+    println!("{:?}", fwd_pass);
     println!("==");
 
     println!("== Creating circuit public parameters");

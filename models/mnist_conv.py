@@ -10,11 +10,13 @@ from torch.utils.data import Dataset
 
 import json
 
+
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
         self.conv1 = nn.Conv2d(1, 4, 3, 1, padding=1)
         self.conv2 = nn.Conv2d(4, 4, 3, 1, padding=1)
+        self.conv3 = nn.Conv2d(4, 4, 3, 1, padding=1)
         self.fc1 = nn.Linear(28*28*4, 10)
 
     def forward(self, x):
@@ -44,7 +46,8 @@ class Net(nn.Module):
         x = x.view(-1, 28*28*4)
         x = self.fc1(x)
         return x
-    
+
+
 def train(args, model, device, train_loader, optimizer, epoch):
     model.train()
     for batch_idx, (data, target) in enumerate(train_loader):
@@ -70,8 +73,10 @@ def test(model, device, test_loader):
         for data, target in test_loader:
             data, target = data.to(device), target.to(device)
             output = model(data)
-            test_loss += F.nll_loss(output, target, reduction='sum').item()  # sum up batch loss
-            pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
+            # sum up batch loss
+            test_loss += F.nll_loss(output, target, reduction='sum').item()
+            # get the index of the max log-probability
+            pred = output.argmax(dim=1, keepdim=True)
             correct += pred.eq(target.view_as(pred)).sum().item()
 
     test_loss /= len(test_loader.dataset)
@@ -79,6 +84,7 @@ def test(model, device, test_loader):
     print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
         test_loss, correct, len(test_loader.dataset),
         100. * correct / len(test_loader.dataset)))
+
 
 def main():
     # Training settings
@@ -127,15 +133,15 @@ def main():
         train_kwargs.update(cuda_kwargs)
         test_kwargs.update(cuda_kwargs)
 
-    transform=transforms.Compose([
+    transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize((0.1307,), (0.3081,))
-        ])
+    ])
     dataset1 = datasets.MNIST('../data', train=True, download=True,
-                       transform=transform)
+                              transform=transform)
     dataset2 = datasets.MNIST('../data', train=False,
-                       transform=transform)
-    train_loader = torch.utils.data.DataLoader(dataset1,**train_kwargs)
+                              transform=transform)
+    train_loader = torch.utils.data.DataLoader(dataset1, **train_kwargs)
     test_loader = torch.utils.data.DataLoader(dataset2, **test_kwargs)
 
     model = Net().to(device)
@@ -155,14 +161,15 @@ def main():
     X1 = next(iter(test_loader))[0][:1]
 
     activation = {}
+
     def get_activation(name):
         def hook(model, input, output):
             activation[name] = output.detach()
         return hook
 
-
     model.fc1.register_forward_hook(get_activation('conv1'))
     model.fc1.register_forward_hook(get_activation('conv2'))
+    model.fc1.register_forward_hook(get_activation('conv3'))
 
     y1 = model.presoftmax(X1).detach()
 
@@ -170,20 +177,31 @@ def main():
     with open('json/inp1_two_conv_mnist.json', 'w') as json_file:
         in_json = {
             "x": X1.numpy().astype(int).flatten().tolist(),
-            "weights": [(model.state_dict()['conv1.weight'].numpy()*(10**9)).round().astype(int).tolist(),
-                        (model.state_dict()['conv2.weight'].numpy()*(10**9)).round().astype(int).tolist(),
-                        (model.state_dict()['fc1.weight'].numpy()*(10**9)).round().astype(int).tolist()],
-            "biases": [(model.state_dict()['conv1.bias'].numpy()*(10**9)).round().astype(int).tolist(),
-                       (model.state_dict()['conv2.bias'].numpy()*(10**9)).round().astype(int).tolist(),
-                       (model.state_dict()['fc1.bias'].numpy()*(10**9)).round().astype(int).tolist()],
-            "activations": [activation['conv1'].numpy().astype(int).tolist(), 
-                            activation['conv2'].numpy().astype(int).tolist(),
-                            y1.numpy().flatten().tolist()],
+            "head": {
+                "W": (model.state_dict()['conv1.weight'].numpy()*(10**9)).round().astype(int).tolist(),
+                "b": (model.state_dict()['conv1.bias'].numpy()*(10**9)).round().astype(int).tolist(),
+                "a": activation['conv1'].numpy().astype(int).tolist()
+            },
+            "backbone": [
+                {
+                    "W": (model.state_dict()['conv2.weight'].numpy()*(10**9)).round().astype(int).tolist(),
+                    "b": (model.state_dict()['conv2.bias'].numpy()*(10**9)).round().astype(int).tolist(),
+                    "a": activation['conv2'].numpy().astype(int).tolist()
+                },
+                {
+                    "W": (model.state_dict()['conv3.weight'].numpy()*(10**9)).round().astype(int).tolist(),
+                    "b": (model.state_dict()['conv3.bias'].numpy()*(10**9)).round().astype(int).tolist(),
+                    "a": activation['conv3'].numpy().astype(int).tolist()
+                }
+            ],
+            "tail": {
+                "W": (model.state_dict()['fc1.weight'].numpy()*(10**9)).round().astype(int).tolist(),
+                "b": (model.state_dict()['fc1.bias'].numpy()*(10**9)).round().astype(int).tolist(),
+                "a": y1.numpy().flatten().tolist()
+            },
             "scale": 10**-9,
-            # "fwd_out": y1.numpy().flatten().tolist(),
             "label": int(y1.argmax())
         }
-
         json.dump(in_json, json_file)
 
     activation = {}
@@ -193,36 +211,48 @@ def main():
 
     model.fc1.register_forward_hook(get_activation('conv1'))
     model.fc1.register_forward_hook(get_activation('conv2'))
+    model.fc1.register_forward_hook(get_activation('conv3'))
 
     y2 = model.presoftmax(X2).detach()
 
     with open('json/inp2_two_conv_mnist.json', 'w') as json_file:
         in_json = {
             "x": X2.numpy().astype(int).flatten().tolist(),
-            "weights": [(model.state_dict()['conv1.weight'].numpy()*(10**9)).round().astype(int).tolist(),
-                        (model.state_dict()['conv2.weight'].numpy()*(10**9)).round().astype(int).tolist(),
-                        (model.state_dict()['fc1.weight'].numpy()*(10**9)).round().astype(int).tolist()],
-            "biases": [(model.state_dict()['conv1.bias'].numpy()*(10**9)).round().astype(int).tolist(),
-                       (model.state_dict()['conv2.bias'].numpy()*(10**9)).round().astype(int).tolist(),
-                       (model.state_dict()['fc1.bias'].numpy()*(10**9)).round().astype(int).tolist()],
-            "activations": [activation['conv1'].numpy().astype(int).tolist(), 
-                            activation['conv2'].numpy().astype(int).tolist(),
-                            y2.numpy().flatten().tolist()],
+            "head": {
+                "W": (model.state_dict()['conv1.weight'].numpy()*(10**9)).round().astype(int).tolist(),
+                "b": (model.state_dict()['conv1.bias'].numpy()*(10**9)).round().astype(int).tolist(),
+                "a": activation['conv1'].numpy().astype(int).tolist()
+            },
+            "backbone": [
+                {
+                    "W": (model.state_dict()['conv2.weight'].numpy()*(10**9)).round().astype(int).tolist(),
+                    "b": (model.state_dict()['conv2.bias'].numpy()*(10**9)).round().astype(int).tolist(),
+                    "a": activation['conv2'].numpy().astype(int).tolist()
+                },
+                {
+                    "W": (model.state_dict()['conv3.weight'].numpy()*(10**9)).round().astype(int).tolist(),
+                    "b": (model.state_dict()['conv3.bias'].numpy()*(10**9)).round().astype(int).tolist(),
+                    "a": activation['conv3'].numpy().astype(int).tolist()
+                }
+            ],
+            "tail": {
+                "W": (model.state_dict()['fc1.weight'].numpy()*(10**9)).round().astype(int).tolist(),
+                "b": (model.state_dict()['fc1.bias'].numpy()*(10**9)).round().astype(int).tolist(),
+                "a": y2.numpy().flatten().tolist()
+            },
             "scale": 10**-9,
-            # "fwd_out": y2.numpy().flatten().tolist(),
             "label": int(y2.argmax())
         }
-
         json.dump(in_json, json_file)
 
-    with open('json/784_single_dense.json', 'w') as json_file:
-        in_json = {
-            "x": X2.numpy().astype(int).flatten().tolist(),
-            "weights": (model.state_dict()['fc1.weight'].numpy()*(10**6)).round().astype(int).tolist(),
-            "bias": (model.state_dict()['fc1.bias'].numpy()*(10**6)).round().astype(int).tolist(),
-        }
+    # with open('json/784_single_dense.json', 'w') as json_file:
+    #     in_json={
+    #         "x": X2.numpy().astype(int).flatten().tolist(),
+    #         "weights": (model.state_dict()['fc1.weight'].numpy()*(10**6)).round().astype(int).tolist(),
+    #         "bias": (model.state_dict()['fc1.bias'].numpy()*(10**6)).round().astype(int).tolist(),
+    #     }
 
-        json.dump(in_json, json_file)
+    #     json.dump(in_json, json_file)
 
 
 if __name__ == '__main__':

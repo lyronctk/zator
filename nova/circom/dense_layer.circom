@@ -29,4 +29,4 @@ template dense_layer(nInputs, nOutputs) {
     }
 }
 
-component main { public step_in } = dense_layer(784, 512);
+component main { public step_in } = dense_layer(784, 784);

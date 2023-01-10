@@ -3,3 +3,4 @@ node_modules/
 nova/circom/out/
 nova/circom/tests/ConvolutionalLayer_js
 nova/circom/tests/*.r1cs
+nova/circom/tests/*.wtns

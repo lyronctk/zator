@@ -172,10 +172,11 @@ def main():
     print((model.state_dict()['conv2.weight'].numpy()*(10**9)).round().astype(int).T.shape)
     print((model.state_dict()['conv3.weight'].numpy()*(10**9)).round().astype(int).T.shape)
 
+    print(X1.shape)
     # export weights to json
     with open('json/inp1_two_conv_mnist.json', 'w') as json_file:
         in_json = {
-            "x": X1.numpy().astype(int).flatten().tolist(),
+            "x": X1.numpy().astype(int).tolist(),
             "head": {
                 "W": (model.state_dict()['conv1.weight'].numpy()*(10**9)).round().astype(int).T.tolist(),
                 "b": (model.state_dict()['conv1.bias'].numpy()*(10**9)).round().astype(int).tolist(),

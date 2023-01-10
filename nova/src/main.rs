@@ -1,4 +1,3 @@
-use mimc_rs::Mimc7;
 use nova_scotia::{
     circom::{
         circuit::{CircomCircuit, R1CS},
@@ -24,14 +23,16 @@ type C2 = TrivialTestCircuit<<G2 as Group>::Scalar>;
 type S1 = nova_snark::spartan_with_ipa_pc::RelaxedR1CSSNARK<G1>;
 type S2 = nova_snark::spartan_with_ipa_pc::RelaxedR1CSSNARK<G2>;
 
-const R1CS_F: &str = "./circom/out/dense_layer.r1cs";
-const WASM_F: &str = "./circom/out/dense_layer.wasm";
+const MIMC3D_R1CS_F: &str = "./circom/out/MiMC3D.r1cs";
+const MIMC3D_WASM_F: &str = "./circom/out/MiMC3D.wasm";
+const BACKBONE_R1CS_F: &str = "./circom/out/dense_layer.r1cs";
+const BACKBONE_WASM_F: &str = "./circom/out/dense_layer.wasm";
 const FWD_PASS_F: &str = "../models/json/inp1_two_conv_mnist.json";
 
 #[derive(Serialize)]
 struct MiMC3DInput {
     dummy: String,
-    // arr: Vec<Vec<Vec<i64>>>,
+    arr: Vec<Vec<Vec<i64>>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -100,12 +101,52 @@ fn setup(r1cs: &R1CS<F1>) -> PublicParams<G1, G2, C1, C2> {
     pp
 }
 
+fn mimc3d(r1cs: &R1CS<F1>, wasm: &PathBuf, arr: &Vec<Vec<Vec<i64>>>) -> String {
+    let witness_gen_input = PathBuf::from("circom_input.json");
+    let witness_gen_output = PathBuf::from("circom_witness.wtns");
+
+    let inp = MiMC3DInput {
+        dummy: String::from("0"),
+        arr: arr.clone(),
+    };
+    let input_json = serde_json::to_string(&inp).unwrap();
+    fs::write(&witness_gen_input, input_json).unwrap();
+    let witness = generate_witness_from_wasm::<<G1 as Group>::Scalar>(
+        &wasm,
+        &witness_gen_input,
+        &witness_gen_output,
+    );
+
+    let circuit = CircomCircuit {
+        r1cs: r1cs.clone(),
+        witness: Some(witness),
+    };
+    let pub_outputs = circuit.get_public_outputs();
+
+    let stripped = format!("{:?}", pub_outputs[0])
+        .strip_prefix("0x")
+        .unwrap()
+        .to_string();
+    let decimal_hash = BigInt::from_str_radix(&stripped, 16)
+        .unwrap()
+        .to_str_radix(10);
+
+    fs::remove_file(witness_gen_input).unwrap();
+    fs::remove_file(witness_gen_output).unwrap();
+    decimal_hash
+}
+
 /*
  * Constructs the inputs necessary for recursion. This includes 1) private
  * inputs for every step, and 2) initial public inputs for the first step of the
  * primary & secondary circuits.
  */
-fn construct_inputs(fwd_pass: &ForwardPass, num_steps: usize) {
+fn construct_inputs(
+    fwd_pass: &ForwardPass,
+    num_steps: usize,
+    mimc3d_r1cs: &R1CS<F1>,
+    mimc3d_wasm: &PathBuf,
+) {
     let mut private_inputs = Vec::new();
     for i in 0..num_steps {
         let a = if i > 0 {
@@ -121,45 +162,13 @@ fn construct_inputs(fwd_pass: &ForwardPass, num_steps: usize) {
         private_inputs.push(priv_in);
     }
 
-    let root = current_dir().unwrap();
-    let r1cs = load_r1cs(&root.join("./circom/out/MiMC3D.r1cs"));
-    let witness_generator_file = root.join("./circom/out/MiMC3D.wasm");
-    let witness_generator_input = root.join("circom_input.json");
-    let witness_generator_output = root.join("circom_witness.wtns");
-    let decimal_stringified_input = vec![String::from("123"), String::from("234")];
-    let mut priv_in = HashMap::from([(String::from("a"), json!(1))]);
-    // let inp = CircomInput {
-    //     step_in: decimal_stringified_input.clone(),
-    //     extra: priv_in,
-    // };
-    // let inp = MiMC3DInput {
-    //     step_in: ,
-    //     extra: ,
-    // };
-    let inp = MiMC3DInput {
-        dummy: String::from("0"),
-        // arr: fwd_pass.head.a.clone()
-    };
-    let input_json = serde_json::to_string(&inp).unwrap();
-    fs::write(&witness_generator_input, input_json).unwrap();
-    let witness = generate_witness_from_wasm::<<G1 as Group>::Scalar>(
-        &witness_generator_file,
-        &witness_generator_input,
-        &witness_generator_output,
-    );
-    let circuit = CircomCircuit {
-        r1cs: r1cs.clone(),
-        witness: Some(witness),
-    };
-    let pub_out = circuit.get_public_outputs();
-    println!("output: {:?}", pub_out);
-
-    // let z0_primary = vec![
-    //     F1::from(123),
-    //     F1::from(0),
-    //     F1::from(0),
-    //     F1::from(solved_maze.maze[0][0] as u64),
-    // ];
+    let v_1 = mimc3d(mimc3d_r1cs, mimc3d_wasm, &fwd_pass.head.a);
+    let z0_primary = vec![
+        F1::from(v_1),
+        F1::from(0),
+        F1::from(0),
+        F1::from(solved_maze.maze[0][0] as u64),
+    ];
 
     // // Secondary circuit is TrivialTestCircuit, filler val
     // let z0_secondary = vec![F2::zero()];
@@ -249,6 +258,8 @@ fn main() {
     let root = current_dir().unwrap();
     // let r1cs = load_r1cs(&root.join(R1CS_F));
     // let witness_gen = root.join(WASM_F);
+    let mimc3d_r1cs = load_r1cs(&root.join(MIMC3D_R1CS_F));
+    let mimc3d_wasm = root.join(MIMC3D_WASM_F);
 
     let start = Instant::now();
 
@@ -262,7 +273,7 @@ fn main() {
     println!("==");
 
     println!("== Constructing inputs");
-    let inputs = construct_inputs(&fwd_pass, num_steps);
+    let inputs = construct_inputs(&fwd_pass, num_steps, &mimc3d_r1cs, &mimc3d_wasm);
     println!("==");
 
     println!("== Executing recursion using Nova");

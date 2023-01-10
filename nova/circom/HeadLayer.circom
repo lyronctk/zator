@@ -134,4 +134,4 @@ template HeadLayer(nRows, nCols, nChannels, nFilters, kernelSize, strides) {
     out <== mimc_hash_activations.outs[0];
 }
 
-component main { public [in_hash] } = HeadLayer(28, 28, 1, 4, 3, 1);
+component main { public [in_hash] } = HeadLayer(28, 28, 1, 2, 3, 1);

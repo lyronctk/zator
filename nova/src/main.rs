@@ -255,8 +255,8 @@ fn spartan(
 
 fn main() {
     let root = current_dir().unwrap();
-    // let r1cs = load_r1cs(&root.join(R1CS_F));
-    // let witness_gen = root.join(WASM_F);
+    // let backbone_r1cs = load_r1cs(&root.join(BACKBONE_R1CS_F));
+    // let backbone_witness_gen = root.join(BACKBONE_WASM_F);
     let mimc3d_r1cs = load_r1cs(&root.join(MIMC3D_R1CS_F));
     let mimc3d_wasm = root.join(MIMC3D_WASM_F);
 

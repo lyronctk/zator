@@ -6,9 +6,13 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+ff = {package="ff_ce" , version="0.11", features = ["derive"]}
+mimc-rs = "0.0.2"
 nova-scotia = { path = "../../nova-scotia" }
 nova-snark = { path = "../../nova-snark" }
-num-bigint = "0.4.3"
+num-bigint = "0.2.2"
 num-traits = "0.2.15"
+pasta_curves = "0.4.0"
+primitive-types = "0.12.1"
 serde = { version = "1.0.152", features = ["derive"] }
 serde_json = "1.0.91"

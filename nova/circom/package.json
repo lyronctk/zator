@@ -2,5 +2,8 @@
   "name": "circom",
   "version": "1.0.0",
   "main": "index.js",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "circomlib-ml": "^1.4.4"
+  }
 }

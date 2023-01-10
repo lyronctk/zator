@@ -15,10 +15,10 @@ import json
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
-        self.conv1 = nn.Conv2d(1, 4, 3, 1, padding=1)
-        self.conv2 = nn.Conv2d(4, 4, 3, 1, padding=1)
-        self.conv3 = nn.Conv2d(4, 4, 3, 1, padding=1)
-        self.fc1 = nn.Linear(28*28*4, 10)
+        self.conv1 = nn.Conv2d(1, 2, 3, 1, padding=1)
+        self.conv2 = nn.Conv2d(2, 2, 3, 1, padding=1)
+        self.conv3 = nn.Conv2d(2, 2, 3, 1, padding=1)
+        self.fc1 = nn.Linear(28*28*2, 10)
 
     def forward(self, x):
         return F.log_softmax(self.presoftmax(x), dim=1)
@@ -37,7 +37,8 @@ class Net(nn.Module):
         x = F.relu(x)
 
         # this will be also saved
-        x = x.view(-1, 28*28*4)
+        x = x.view(-1, 28*28*2) # 64 x 3136/2
+        # print(x.shape)
         x = self.fc1(x)
         return x
 
@@ -87,7 +88,7 @@ def main():
                         help='input batch size for training (default: 64)')
     parser.add_argument('--test-batch-size', type=int, default=1000, metavar='N',
                         help='input batch size for testing (default: 1000)')
-    parser.add_argument('--epochs', type=int, default=1, metavar='N',
+    parser.add_argument('--epochs', type=int, default=5, metavar='N',
                         help='number of epochs to train (default: 14)')
     parser.add_argument('--lr', type=float, default=1.0, metavar='LR',
                         help='learning rate (default: 1.0)')
@@ -171,10 +172,11 @@ def main():
     print((model.state_dict()['conv2.weight'].numpy()*(10**9)).round().astype(int).T.shape)
     print((model.state_dict()['conv3.weight'].numpy()*(10**9)).round().astype(int).T.shape)
 
+    X1 = X1.reshape(28, 28, 1)
     # export weights to json
     with open('json/inp1_two_conv_mnist.json', 'w') as json_file:
         in_json = {
-            "x": X1.numpy().astype(int).flatten().tolist(),
+            "x": X1.numpy().astype(int).tolist(),
             "head": {
                 "W": (model.state_dict()['conv1.weight'].numpy()*(10**9)).round().astype(int).T.tolist(),
                 "b": (model.state_dict()['conv1.bias'].numpy()*(10**9)).round().astype(int).tolist(),
@@ -212,6 +214,8 @@ def main():
     model.conv3.register_forward_hook(get_activation('conv3'))
 
     y2 = model.presoftmax(X2).detach()
+
+    X2 = X2.reshape(28, 28, 1)
 
     with open('json/inp2_two_conv_mnist.json', 'w') as json_file:
         in_json = {

@@ -15,10 +15,10 @@ import json
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
-        self.conv1 = nn.Conv2d(1, 4, 3, 1, padding=1)
-        self.conv2 = nn.Conv2d(4, 4, 3, 1, padding=1)
-        self.conv3 = nn.Conv2d(4, 4, 3, 1, padding=1)
-        self.fc1 = nn.Linear(28*28*4, 10)
+        self.conv1 = nn.Conv2d(1, 2, 3, 1, padding=1)
+        self.conv2 = nn.Conv2d(2, 2, 3, 1, padding=1)
+        self.conv3 = nn.Conv2d(2, 2, 3, 1, padding=1)
+        self.fc1 = nn.Linear(28*28*2, 10)
 
     def forward(self, x):
         return F.log_softmax(self.presoftmax(x), dim=1)
@@ -37,7 +37,8 @@ class Net(nn.Module):
         x = F.relu(x)
 
         # this will be also saved
-        x = x.view(-1, 28*28*4)
+        x = x.view(-1, 28*28*2) # 64 x 3136/2
+        # print(x.shape)
         x = self.fc1(x)
         return x
 

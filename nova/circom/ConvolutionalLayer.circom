@@ -1,10 +1,11 @@
 pragma circom 2.1.1;
-include "../../node_modules/circomlib-ml/circuits/Dense.circom";
-include "../../node_modules/circomlib-ml/circuits/ReLU.circom";
-include "../../node_modules/circomlib-ml/circuits/circomlib/mimc.circom";
-include "../../node_modules/circomlib-ml/circuits/Conv2D.circom";
-include "mimcsponge.circom";
-include "utils.circom";
+include "./node_modules/circomlib-ml/circuits/Dense.circom";
+include "./node_modules/circomlib-ml/circuits/ReLU.circom";
+include "./node_modules/circomlib-ml/circuits/circomlib/mimc.circom";
+include "./node_modules/circomlib-ml/circuits/Conv2D.circom";
+include "./node_modules/circomlib-ml/circuits/Conv2D.circom";
+include "./utils/mimcsponge.circom";
+include "./utils/utils.circom";
 
 // Template to run ReLu on Dense Layer outputs
 template ConvolutionalLayer(nRows, nCols, nChannels, nFilters, kernelSize, strides) {

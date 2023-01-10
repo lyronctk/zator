@@ -1,3 +1,4 @@
+use mimc_rs::Mimc7;
 use nova_scotia::{
     circom::{
         circuit::{CircomCircuit, R1CS},
@@ -9,7 +10,6 @@ use nova_snark::{
     traits::{circuit::TrivialTestCircuit, Group},
     CompressedSNARK, PublicParams, RecursiveSNARK,
 };
-use mimc_rs::{Fr, Mimc7};
 use num_bigint::BigInt;
 use num_traits::Num;
 use serde::Deserialize;
@@ -114,7 +114,21 @@ fn construct_inputs(fwd_pass: &ForwardPass, num_steps: usize) {
         private_inputs.push(priv_in);
     }
 
-    println!()
+    // const SEED: &str = "mimc";
+    // println!("{:?}", SEED.to_string().parse::<i32>().unwrap());
+
+    // let tmp: Vec<BigInt> = vec![
+    //     BigInt::parse_bytes(b"1", 10).unwrap(),
+    // ];
+    let mimc7 = Mimc7::new();
+    // let h0 = mimc7.hash(tmp);
+    // println!("{:?}", h0.unwrap().to_str_radix(10));
+
+    // pub fn mimc7_hash_generic(r: &BigInt, x_in: &BigInt, k: &BigInt, n_rounds: i64)
+
+    let n = BigInt::parse_bytes(b"1", 10).unwrap();
+    let k = BigInt::parse_bytes(b"0", 10).unwrap();
+    println!("{:?}", mimc7.mimc7_hash(&n, &k).to_str_radix(10));
 
     // let z0_primary = vec![
     //     F1::from(123),
@@ -217,7 +231,6 @@ fn main() {
     println!("== Loading forward pass");
     let fwd_pass = read_fwd_pass(FWD_PASS_F);
     let num_steps = fwd_pass.backbone.len();
-    println!("{:?}", fwd_pass);
     println!("==");
 
     println!("== Creating circuit public parameters");

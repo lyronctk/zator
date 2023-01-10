@@ -12,10 +12,11 @@ use nova_snark::{
 };
 use num_bigint::BigInt;
 use num_traits::Num;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::{
-    collections::HashMap, env::current_dir, fs::File, io::BufReader, path::PathBuf, time::Instant,
+    collections::HashMap, env::current_dir, fs, fs::File, io::BufReader, path::PathBuf,
+    time::Instant,
 };
 
 type C1 = CircomCircuit<<G1 as Group>::Scalar>;
@@ -26,6 +27,11 @@ type S2 = nova_snark::spartan_with_ipa_pc::RelaxedR1CSSNARK<G2>;
 const R1CS_F: &str = "./circom/out/dense_layer.r1cs";
 const WASM_F: &str = "./circom/out/dense_layer.wasm";
 const FWD_PASS_F: &str = "../models/json/inp1_two_conv_mnist.json";
+
+#[derive(Serialize)]
+struct MiMC3DInput {
+    arr: Vec<Vec<Vec<i64>>>,
+}
 
 #[derive(Debug, Deserialize)]
 struct ConvLayer {
@@ -115,15 +121,26 @@ fn construct_inputs(fwd_pass: &ForwardPass, num_steps: usize) {
     }
 
     let root = current_dir().unwrap();
+    let r1cs = load_r1cs(&root.join("./circom/out/MiMC3D.r1cs"));
     let witness_generator_file = root.join("./circom/out/MiMC3D.wasm");
     let witness_generator_input = root.join("circom_input.json");
     let witness_generator_output = root.join("circom_witness.wtns");
-    let h = generate_witness_from_wasm::<<G1 as Group>::Scalar>(
+    let inp = MiMC3DInput {
+        arr: fwd_pass.head.a.clone()
+    };
+    let input_json = serde_json::to_string(&inp).unwrap();
+    fs::write(&witness_generator_input, input_json).unwrap();
+    let witness = generate_witness_from_wasm::<<G1 as Group>::Scalar>(
         &witness_generator_file,
         &witness_generator_input,
         &witness_generator_output,
     );
-    println!("{:?}", h);
+    let circuit = CircomCircuit {
+        r1cs: r1cs.clone(),
+        witness: Some(witness),
+    };
+    let current_public_output = circuit.get_public_outputs();
+    println!("output: {:?}", current_public_output.len());
 
     // let z0_primary = vec![
     //     F1::from(123),

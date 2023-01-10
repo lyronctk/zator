@@ -19,26 +19,35 @@ class Net(nn.Module):
         self.conv2 = nn.Conv2d(4, 4, 3, 1, padding=1)
         self.conv3 = nn.Conv2d(4, 4, 3, 1, padding=1)
         self.fc1 = nn.Linear(28*28*4, 10)
+        self.quant = torch.quantization.QuantStub()
+        self.dequant = torch.quantization.DeQuantStub()
+
+        self.relu1 = nn.ReLU()
+        self.relu2 = nn.ReLU()
+        self.relu3 = nn.ReLU()
 
     def forward(self, x):
         return F.log_softmax(self.presoftmax(x), dim=1)
 
     def presoftmax(self, x):
         # first conv will not be layered...
+        x = self.quant(x)
+        
         x = self.conv1(x)
-        x = F.relu(x)
+        x = self.relu1(x)
 
         # second conv will be layered
         x = self.conv2(x)
-        x = F.relu(x)
+        x = self.relu2(x)
 
         # third conv will be layered
         x = self.conv3(x)
-        x = F.relu(x)
+        x = self.relu3(x)
 
         # this will be also saved
         x = x.view(-1, 28*28*4)
         x = self.fc1(x)
+        x = self.dequant(x)
         return x
 
 
@@ -142,10 +151,21 @@ def main():
     optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
 
     scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
+
+    torch.backends.quantized.engine = 'qnnpack'
+
+    model.qconfig = torch.quantization.get_default_qat_qconfig('fbgemm')
+    torch.quantization.fuse_modules(model, [['conv1', 'relu1'], 
+                                            ['conv2', 'relu2'],
+                                            ['conv3', 'relu3']], inplace=True)
+    torch.quantization.prepare_qat(model, inplace=True)
+
     for epoch in range(1, args.epochs + 1):
         train(args, model, device, train_loader, optimizer, epoch)
         test(model, device, test_loader)
         scheduler.step()
+
+    torch.quantization.convert(model, inplace=True)
 
     torch.save(model.state_dict(), "mnist_cnn.pt")
 

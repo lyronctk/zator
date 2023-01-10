@@ -6,6 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+mimc-rs = "0.0.2"
 nova-scotia = { path = "../../nova-scotia" }
 nova-snark = { path = "../../nova-snark" }
 num-bigint = "0.4.3"

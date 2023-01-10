@@ -9,13 +9,13 @@ use nova_snark::{
     traits::{circuit::TrivialTestCircuit, Group},
     CompressedSNARK, PublicParams, RecursiveSNARK,
 };
+use mimc_rs::{Fr, Mimc7};
 use num_bigint::BigInt;
 use num_traits::Num;
 use serde::Deserialize;
 use serde_json::{json, Value};
 use std::{
-    collections::HashMap, env::current_dir, fs::File, io::BufReader,
-    path::PathBuf, time::Instant,
+    collections::HashMap, env::current_dir, fs::File, io::BufReader, path::PathBuf, time::Instant,
 };
 
 type C1 = CircomCircuit<<G1 as Group>::Scalar>;
@@ -52,11 +52,11 @@ struct DenseLayer {
 #[derive(Debug, Deserialize)]
 struct ForwardPass {
     x: Vec<u64>,
-    head: ConvLayer, 
+    head: ConvLayer,
     backbone: Vec<ConvLayer>,
     tail: DenseLayer,
     scale: f64,
-    label: u64
+    label: u64,
 }
 
 struct RecursionInputs {
@@ -98,23 +98,24 @@ fn setup(r1cs: &R1CS<F1>) -> PublicParams<G1, G2, C1, C2> {
  * inputs for every step, and 2) initial public inputs for the first step of the
  * primary & secondary circuits.
  */
-fn construct_inputs(
-    fwd_pass: &ForwardPass,
-    num_steps: usize,
-) {
-    // let mut private_inputs = Vec::new();
-    // for i in 0..num_steps {
-    //     let priv_in = HashMap::from([
-    //         (String::from("x"), json!()),
-    //         (String::from("W"), json!(fwd_pass.backbone[i].W)),
-    //         (String::from("b"), json!())
-    //     ]);
-    //     private_inputs.push(priv_in);
-    // }
+fn construct_inputs(fwd_pass: &ForwardPass, num_steps: usize) {
+    let mut private_inputs = Vec::new();
+    for i in 0..num_steps {
+        let a = if i > 0 {
+            &fwd_pass.backbone[i - 1].a
+        } else {
+            &fwd_pass.head.a
+        };
+        let priv_in = HashMap::from([
+            (String::from("a"), json!(a)),
+            (String::from("W"), json!(fwd_pass.backbone[i].W)),
+            (String::from("b"), json!(fwd_pass.backbone[i].b)),
+        ]);
+        private_inputs.push(priv_in);
+    }
 
-    // // [TODO] Checkings the grid hash currently disabled. Need to run poseidon
-    // //        hash on the Vesta curve. Also need to load into F1, which only has
-    // //        From() trait implemented for u64.
+    println!()
+
     // let z0_primary = vec![
     //     F1::from(123),
     //     F1::from(0),
@@ -186,8 +187,7 @@ fn spartan(
     let start = Instant::now();
     type S1 = nova_snark::spartan_with_ipa_pc::RelaxedR1CSSNARK<G1>;
     type S2 = nova_snark::spartan_with_ipa_pc::RelaxedR1CSSNARK<G2>;
-    let res =
-        CompressedSNARK::<_, _, _, _, S1, S2>::prove(&pp, &recursive_snark);
+    let res = CompressedSNARK::<_, _, _, _, S1, S2>::prove(&pp, &recursive_snark);
     assert!(res.is_ok());
     println!("- Done ({:?})", start.elapsed());
     let compressed_snark = res.unwrap();

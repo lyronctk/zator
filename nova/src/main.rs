@@ -2,7 +2,7 @@ use mimc_rs::Mimc7;
 use nova_scotia::{
     circom::{
         circuit::{CircomCircuit, R1CS},
-        reader::load_r1cs,
+        reader::{generate_witness_from_wasm, load_r1cs},
     },
     create_public_params, create_recursive_circuit, F1, F2, G1, G2,
 };
@@ -114,21 +114,16 @@ fn construct_inputs(fwd_pass: &ForwardPass, num_steps: usize) {
         private_inputs.push(priv_in);
     }
 
-    // const SEED: &str = "mimc";
-    // println!("{:?}", SEED.to_string().parse::<i32>().unwrap());
-
-    // let tmp: Vec<BigInt> = vec![
-    //     BigInt::parse_bytes(b"1", 10).unwrap(),
-    // ];
-    let mimc7 = Mimc7::new();
-    // let h0 = mimc7.hash(tmp);
-    // println!("{:?}", h0.unwrap().to_str_radix(10));
-
-    // pub fn mimc7_hash_generic(r: &BigInt, x_in: &BigInt, k: &BigInt, n_rounds: i64)
-
-    let n = BigInt::parse_bytes(b"1", 10).unwrap();
-    let k = BigInt::parse_bytes(b"0", 10).unwrap();
-    println!("{:?}", mimc7.mimc7_hash(&n, &k).to_str_radix(10));
+    let root = current_dir().unwrap();
+    let witness_generator_file = root.join("./circom/out/MiMC3D.wasm");
+    let witness_generator_input = root.join("circom_input.json");
+    let witness_generator_output = root.join("circom_witness.wtns");
+    let h = generate_witness_from_wasm::<<G1 as Group>::Scalar>(
+        &witness_generator_file,
+        &witness_generator_input,
+        &witness_generator_output,
+    );
+    println!("{:?}", h);
 
     // let z0_primary = vec![
     //     F1::from(123),

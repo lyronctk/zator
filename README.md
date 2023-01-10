@@ -2,30 +2,57 @@
 
 prove the execution of resnets w/ recursive snarks 
 
-## to do 
-1. figure out quantization scheme of circomlib-ml
-1. train a quantized three layer FFNN on MNIST 
-1. circom circuit that is one matmul + relu combo 
-1. recurse w/ nova scotia 
+## Circuit Design
+For an L-layer CNN. Bulk of the encoding done by the Backbone, where layers are verified with recursive SNARKs using Nova. Head & Tail layers are verified with single circuits that have model parameters directly built in. 
 
-## circuit 
-PUBLIC INPUTS 
-1. $p_n$: $H(H(H(A_1 || b_1) || A_2 || b_1) ... || A_{n - 1} || b_{n - 1}))$, accumulated parameter hash
-1. $v_n$: $H(a_{n - 1})$, hash of the activations of the previous layer, is equal to $g_n$ for layer 1 
+### **Head Circuit** - `[layer 1]`
+#### Public Inputs
+1. $v_0 = H(a_0)$: Hash of input image 
 
-PUBLIC OUTPUTS (symmetric with inputs)
-1. $p_{n + 1}$: $H(p_n || H(A_n) || H(b_n))$, updated running parameter hash 
-1. $v_{n + 1}$: $H(a_n)$, hash of the activations produced by evaluating current layer
+#### Public Outputs
+1. $v_1 = H(a_1)$: Hash of the activations produced by evaluating current layer
 
-PRIVATE INPUTS 
-1. $A$: Matrix transformation
-1. $b$: Bias vector 
-1. $x$: Input vector
+#### Private Inputs
+1. $a_0$: Input image `[imgHeight x imgWidth x nChannels]`
 
-LOGIC
-1. Check that $H(x) = v_n$
-1. Compute $a_n = RELU(Ax + b)$ 
-1. Compute $v_{n + 1} = H(a_n)$
-1. Update running parameter hash $p_{n + 1}$
+#### Logic
+1. Check that $H(a_0) = v_0$
+1. Convolve filters stored in circuit ($W_1$ / $b_1$) over $a_0$ to produce $a_1$
+1. Compute $v_1 = H(a_1)$
 
-Note: within rust, divide activations at every dense layer by 10^9
+### **Backbone Circuit** - `[layer 2, L)`
+#### Public Inputs
+1. $p_{n - 1} = H(H(H(W_2 || b_2) || W_3 || b_3) ... || W_{n - 1} || b_{n - 1}))$: Accumulated parameter hash
+1. $v_{n - 1} = H(a_{n - 1})$: Hash of the activations (output) of the previous layer
+
+#### Public Outputs
+1. $p_n = H(p_n || H(W_n) || H(b_n))$: Updated running parameter hash 
+1. $v_n = H(a_n)$: Hash of the activations produced by evaluating current layer
+
+#### Private Inputs
+1. $W_n$: Filters for convolution `[kernelSize x kernelSize x nChannels x nFilters]`
+1. $b_n$: Bias vector `[nFilters]`
+1. $a_{n-1}$: Input volume `[imgHeight x imgWidth x nChannels]`
+
+#### Logic
+1. Check that $H(a_{n-1}) = v_{n-1}$
+1. Convolve $W_n$ / $b_n$ over $a_{n-1}$ to produce $a_n$
+1. Compute $v_n = H(a_n)$
+1. Update running parameter hash to $p_n$
+
+### **Tail Circuit** - `layer L`
+#### Public Inputs
+1. $v_{L - 1} = H(a_{L - 1})$: Hash of the activations (output) of last backbone layer 
+
+#### Public Outputs
+1. $v_L = H(a_L)$: Hash of the activations produced by evaluating current layer
+
+#### Private Inputs
+1. $W_L$: Matrix transformation `[(imgHeight * imgWidth) x nClasses]`
+1. $b_n$: Bias vector `[nClasses]`
+1. $x_n$: Input volume `[imgHeight x imgWidth x nFilters]`
+
+#### Logic
+1. Check that $H(a_{L-1}) = v_{L-1}$
+1. Convolve $W_L$ / $b_L$ over $a_{L-1}$ to produce $a_L$
+1. Compute $v_L = H(a_L)$

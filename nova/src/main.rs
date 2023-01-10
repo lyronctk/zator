@@ -11,6 +11,8 @@ use nova_snark::{
 };
 use num_bigint::BigInt;
 use num_traits::Num;
+use pasta_curves::{group::ff::PrimeField, Fq};
+use primitive_types::U256;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::{
@@ -67,6 +69,7 @@ struct ForwardPass {
     label: u64,
 }
 
+#[derive(Debug)]
 struct RecursionInputs {
     all_private: Vec<HashMap<String, Value>>,
     start_pub_primary: Vec<F1>,
@@ -101,7 +104,8 @@ fn setup(r1cs: &R1CS<F1>) -> PublicParams<G1, G2, C1, C2> {
     pp
 }
 
-fn mimc3d(r1cs: &R1CS<F1>, wasm: &PathBuf, arr: &Vec<Vec<Vec<i64>>>) -> String {
+// On vesta curve
+fn mimc3d(r1cs: &R1CS<F1>, wasm: &PathBuf, arr: &Vec<Vec<Vec<i64>>>) -> BigInt {
     let witness_gen_input = PathBuf::from("circom_input.json");
     let witness_gen_output = PathBuf::from("circom_witness.wtns");
 
@@ -123,17 +127,14 @@ fn mimc3d(r1cs: &R1CS<F1>, wasm: &PathBuf, arr: &Vec<Vec<Vec<i64>>>) -> String {
     };
     let pub_outputs = circuit.get_public_outputs();
 
+    fs::remove_file(witness_gen_input).unwrap();
+    fs::remove_file(witness_gen_output).unwrap();
+
     let stripped = format!("{:?}", pub_outputs[0])
         .strip_prefix("0x")
         .unwrap()
         .to_string();
-    let decimal_hash = BigInt::from_str_radix(&stripped, 16)
-        .unwrap()
-        .to_str_radix(10);
-
-    fs::remove_file(witness_gen_input).unwrap();
-    fs::remove_file(witness_gen_output).unwrap();
-    decimal_hash
+    BigInt::from_str_radix(&stripped, 16).unwrap()
 }
 
 /*
@@ -146,7 +147,7 @@ fn construct_inputs(
     num_steps: usize,
     mimc3d_r1cs: &R1CS<F1>,
     mimc3d_wasm: &PathBuf,
-) {
+) -> RecursionInputs {
     let mut private_inputs = Vec::new();
     for i in 0..num_steps {
         let a = if i > 0 {
@@ -162,23 +163,21 @@ fn construct_inputs(
         private_inputs.push(priv_in);
     }
 
-    let v_1 = mimc3d(mimc3d_r1cs, mimc3d_wasm, &fwd_pass.head.a);
+    let v_1 = mimc3d(mimc3d_r1cs, mimc3d_wasm, &fwd_pass.head.a).to_str_radix(10);
     let z0_primary = vec![
-        F1::from(v_1),
-        F1::from(0),
-        F1::from(0),
-        F1::from(solved_maze.maze[0][0] as u64),
+        Fq::from(0),
+        Fq::from_raw(U256::from_dec_str(&v_1).unwrap().0),
     ];
 
-    // // Secondary circuit is TrivialTestCircuit, filler val
-    // let z0_secondary = vec![F2::zero()];
+    // Secondary circuit is TrivialTestCircuit, filler val
+    let z0_secondary = vec![F2::zero()];
 
-    // println!("- Done");
-    // RecursionInputs {
-    //     all_private: private_inputs,
-    //     start_pub_primary: z0_primary,
-    //     start_pub_secondary: z0_secondary,
-    // }
+    println!("- Done");
+    RecursionInputs {
+        all_private: private_inputs,
+        start_pub_primary: z0_primary,
+        start_pub_secondary: z0_secondary,
+    }
 }
 
 /*
@@ -274,6 +273,7 @@ fn main() {
 
     println!("== Constructing inputs");
     let inputs = construct_inputs(&fwd_pass, num_steps, &mimc3d_r1cs, &mimc3d_wasm);
+    println!("{:?}", inputs);
     println!("==");
 
     println!("== Executing recursion using Nova");

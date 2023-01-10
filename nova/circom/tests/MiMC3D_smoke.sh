@@ -13,4 +13,4 @@ node ${LABEL}_js/generate_witness.js ${LABEL}_js/${LABEL}.wasm ${LABEL}_smoke.js
 # Clean up
 mv ${LABEL}_js/${LABEL}.wasm ../out
 mv ${LABEL}.r1cs ../out
-rm -r ${LABEL}_js/ ConvolutionalLayer.wtns
+rm -r ${LABEL}_js/ ${LABEL}.wtns

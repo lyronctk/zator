@@ -4,7 +4,7 @@ use nova_scotia::{
         circuit::{CircomCircuit, R1CS},
         reader::{generate_witness_from_wasm, load_r1cs},
     },
-    create_public_params, create_recursive_circuit, F1, F2, G1, G2,
+    create_public_params, create_recursive_circuit, CircomInput, F1, F2, G1, G2,
 };
 use nova_snark::{
     traits::{circuit::TrivialTestCircuit, Group},
@@ -30,7 +30,8 @@ const FWD_PASS_F: &str = "../models/json/inp1_two_conv_mnist.json";
 
 #[derive(Serialize)]
 struct MiMC3DInput {
-    arr: Vec<Vec<Vec<i64>>>,
+    dummy: String,
+    // arr: Vec<Vec<Vec<i64>>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -125,8 +126,19 @@ fn construct_inputs(fwd_pass: &ForwardPass, num_steps: usize) {
     let witness_generator_file = root.join("./circom/out/MiMC3D.wasm");
     let witness_generator_input = root.join("circom_input.json");
     let witness_generator_output = root.join("circom_witness.wtns");
+    let decimal_stringified_input = vec![String::from("123"), String::from("234")];
+    let mut priv_in = HashMap::from([(String::from("a"), json!(1))]);
+    // let inp = CircomInput {
+    //     step_in: decimal_stringified_input.clone(),
+    //     extra: priv_in,
+    // };
+    // let inp = MiMC3DInput {
+    //     step_in: ,
+    //     extra: ,
+    // };
     let inp = MiMC3DInput {
-        arr: fwd_pass.head.a.clone()
+        dummy: String::from("0"),
+        // arr: fwd_pass.head.a.clone()
     };
     let input_json = serde_json::to_string(&inp).unwrap();
     fs::write(&witness_generator_input, input_json).unwrap();
@@ -139,8 +151,8 @@ fn construct_inputs(fwd_pass: &ForwardPass, num_steps: usize) {
         r1cs: r1cs.clone(),
         witness: Some(witness),
     };
-    let current_public_output = circuit.get_public_outputs();
-    println!("output: {:?}", current_public_output.len());
+    let pub_out = circuit.get_public_outputs();
+    println!("output: {:?}", pub_out);
 
     // let z0_primary = vec![
     //     F1::from(123),

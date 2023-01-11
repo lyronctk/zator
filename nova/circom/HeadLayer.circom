@@ -1,9 +1,9 @@
 pragma circom 2.1.1;
-include "./node_modules/circomlib-ml/circuits/ReLU.circom";
+include "./node_modules/circomlib-ml/circuits/Poly.circom";
 include "./node_modules/circomlib-ml/circuits/circomlib/mimc.circom";
 include "./node_modules/circomlib-ml/circuits/Conv2D.circom";
-include "mimcsponge.circom";
-include "utils.circom";
+include "./utils/mimcsponge.circom";
+include "./utils/utils.circom";
 
 template HeadLayer(nRows, nCols, nChannels, nFilters, kernelSize, strides) {
     signal input in_hash;
@@ -12,6 +12,7 @@ template HeadLayer(nRows, nCols, nChannels, nFilters, kernelSize, strides) {
     var convLayerOutputCols = (nCols-kernelSize)\strides+1;
     var convLayerOutputDepth = nFilters;
     var convLayerOutputNumElements = convLayerOutputRows * convLayerOutputCols * convLayerOutputDepth;
+    var scaleFactor = 10**9;
     signal activations[convLayerOutputNumElements];
     signal output out;
 
@@ -88,23 +89,24 @@ template HeadLayer(nRows, nCols, nChannels, nFilters, kernelSize, strides) {
       517328024
     ];
 
-    // 2. Generate Convolutional Network Output, Relu elements of 3D Matrix, and 
+    // 2. Generate Convolutional Network Output, Poly elements of 3D Matrix, and 
     // place the output into a flattened activations vector
     component convLayer = Conv2D(nRows, nCols, nChannels, nFilters, kernelSize, strides);
     convLayer.in <== x;
     convLayer.weights <== W;
     convLayer.bias <== b;
 
-    component relu[convLayerOutputNumElements];
-    // Now ReLu all of the elements in the 3D Matrix output of our Conv2D Layer
-    // The ReLu'd outputs are stored in a flattened activations vector
+    component poly[convLayerOutputNumElements];
+    // Now Poly all of the elements in the 3D Matrix output of our Conv2D Layer
+    // The Poly'd outputs are stored in a flattened activations vector
     for (var row = 0; row < convLayerOutputRows; row++) {
         for (var col = 0; col < convLayerOutputCols; col++) {
             for (var depth = 0; depth < convLayerOutputDepth; depth++) {
                 var indexFlattenedVector = (row * convLayerOutputCols * convLayerOutputDepth) + (col * convLayerOutputDepth) + depth;
-                relu[indexFlattenedVector] = ReLU();
-                relu[indexFlattenedVector].in <== convLayer.out[row][col][depth];
-                activations[indexFlattenedVector] <== relu[indexFlattenedVector].out;
+                poly[indexFlattenedVector] = Poly(1);
+                poly[indexFlattenedVector].in <== convLayer.out[row][col][depth];
+                // Floor divide by the scale factor
+                activations[indexFlattenedVector] <== poly[indexFlattenedVector].out \ scaleFactor;
             }
         }
     }
@@ -115,4 +117,5 @@ template HeadLayer(nRows, nCols, nChannels, nFilters, kernelSize, strides) {
     out <== mimc_hash_activations.outs[0];
 }
 
-component main { public [in_hash] } = HeadLayer(28, 28, 1, 2, 3, 1);
+// Dimensions are 4x4, and we add a padding of 2 
+component main { public [in_hash] } = HeadLayer(4 + 2, 4 + 2, 1, 2, 3, 1);

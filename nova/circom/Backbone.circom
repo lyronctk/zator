@@ -61,13 +61,13 @@ template Backbone(nRows, nCols, nChannels, nFilters, kernelSize, strides, paddin
     mimc_weights_matrix.matrix <== W;
     weights_matrix_hash <== mimc_weights_matrix.hash;
 
-    component mimc_bias_vector = MiMCSponge(nFilters, 220, 1);
+    component mimc_bias_vector = MiMCSponge(nFilters, 91, 1);
     mimc_bias_vector.ins <== b;
     mimc_bias_vector.k <== 0;
     bias_vector_hash <== mimc_bias_vector.outs[0];
     
     // Now p_{n+1} = Hash(p_n, Hash(Weights matrix), hash(bias vector))
-    component pn_compositive_mimc = MiMCSponge(3, 220, 1);
+    component pn_compositive_mimc = MiMCSponge(3, 91, 1);
     pn_compositive_mimc.ins[0] <== step_in[0];
     pn_compositive_mimc.ins[1] <== weights_matrix_hash;
     pn_compositive_mimc.ins[2] <== bias_vector_hash;

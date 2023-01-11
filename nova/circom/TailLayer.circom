@@ -18,7 +18,7 @@ template TailLayer() {
 
     // LOGIC
     // 1. Check hash of activation from prev layer matches hash of input to this layer
-    component mimc_previous_activations = MiMCSponge(inRows, 220, 1);
+    component mimc_previous_activations = MiMCSponge(inRows, 91, 1);
     mimc_previous_activations.ins <== in;
     mimc_previous_activations.k <== 0;
 
@@ -38,7 +38,7 @@ template TailLayer() {
     }
 
     // 3. Compute hash of result
-    component mimc_hash_activations = MiMCSponge(outCols, 220, 1);
+    component mimc_hash_activations = MiMCSponge(outCols, 91, 1);
     mimc_hash_activations.ins <== result;
     mimc_hash_activations.k <== 0;
     finalHash <== mimc_hash_activations.outs[0];

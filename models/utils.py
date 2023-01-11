@@ -90,10 +90,11 @@ def pad_json():
         print(polyd)
 
         for idx, bone in enumerate(backbone):
-            bone_activ = np.array(bone["a"])
+            bone_activ = np.array(bone["a"]).reshape((4, 4, 2))
             bone_activ = np.pad(bone_activ, ((1, 1), (1, 1), (0,0)), 'constant', constant_values=0)
             polyd = bone_activ ** 2 + bone_activ
             backbone[idx]["a"] = polyd.tolist()
+            print(bone_activ.shape)
         
         with open('json/PAD_inp1_two_conv_mnist.json', 'w') as outfile:
             json.dump(data, outfile)

@@ -3,7 +3,7 @@ use nova_scotia::{
         circuit::{CircomCircuit, R1CS},
         reader::{generate_witness_from_wasm, load_r1cs},
     },
-    create_public_params, create_recursive_circuit, CircomInput, F1, F2, G1, G2,
+    create_public_params, create_recursive_circuit, F1, F2, G1, G2,
 };
 use nova_snark::{
     traits::{circuit::TrivialTestCircuit, Group},
@@ -11,7 +11,7 @@ use nova_snark::{
 };
 use num_bigint::BigInt;
 use num_traits::Num;
-use pasta_curves::{group::ff::PrimeField, Fq};
+use pasta_curves::{Fq};
 use primitive_types::U256;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -27,8 +27,8 @@ type S2 = nova_snark::spartan_with_ipa_pc::RelaxedR1CSSNARK<G2>;
 
 const MIMC3D_R1CS_F: &str = "./circom/out/MiMC3D.r1cs";
 const MIMC3D_WASM_F: &str = "./circom/out/MiMC3D.wasm";
-const BACKBONE_R1CS_F: &str = "./circom/out/dense_layer.r1cs";
-const BACKBONE_WASM_F: &str = "./circom/out/dense_layer.wasm";
+const BACKBONE_R1CS_F: &str = "./circom/out/Backbone.r1cs";
+const BACKBONE_WASM_F: &str = "./circom/out/Backbone.wasm";
 const FWD_PASS_F: &str = "../models/json/inp1_two_conv_mnist.json";
 
 #[derive(Serialize)]
@@ -61,7 +61,7 @@ struct DenseLayer {
 
 #[derive(Debug, Deserialize)]
 struct ForwardPass {
-    x: Vec<u64>,
+    x: Vec<Vec<Vec<i64>>>,
     head: ConvLayer,
     backbone: Vec<ConvLayer>,
     tail: DenseLayer,
@@ -255,8 +255,8 @@ fn spartan(
 
 fn main() {
     let root = current_dir().unwrap();
-    // let backbone_r1cs = load_r1cs(&root.join(BACKBONE_R1CS_F));
-    // let backbone_witness_gen = root.join(BACKBONE_WASM_F);
+    let backbone_r1cs = load_r1cs(&root.join(BACKBONE_R1CS_F));
+    let backbone_wasm = root.join(BACKBONE_WASM_F);
     let mimc3d_r1cs = load_r1cs(&root.join(MIMC3D_R1CS_F));
     let mimc3d_wasm = root.join(MIMC3D_WASM_F);
 
@@ -268,20 +268,19 @@ fn main() {
     println!("==");
 
     println!("== Creating circuit public parameters");
-    // let pp = setup(&r1cs);
+    let pp = setup(&backbone_r1cs);
     println!("==");
 
     println!("== Constructing inputs");
     let inputs = construct_inputs(&fwd_pass, num_steps, &mimc3d_r1cs, &mimc3d_wasm);
-    println!("{:?}", inputs);
     println!("==");
 
     println!("== Executing recursion using Nova");
-    // let recursive_snark = recursion(witness_gen, r1cs, &inputs, &pp, num_steps);
+    let recursive_snark = recursion(backbone_wasm, backbone_r1cs, &inputs, &pp, num_steps);
     println!("==");
 
     println!("== Producing a CompressedSNARK using Spartan w/ IPA-PC");
-    // let _compressed_snark = spartan(&pp, recursive_snark, num_steps, &inputs);
+    let _compressed_snark = spartan(&pp, recursive_snark, num_steps, &inputs);
     println!("==");
 
     println!("** Total time to completion: ({:?})", start.elapsed());

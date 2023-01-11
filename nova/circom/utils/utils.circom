@@ -7,7 +7,7 @@ template MimcHashMatrix3D(rows, cols, depth) {
     signal input matrix[rows][cols][depth];
     signal output hash;
 
-    component mimc = MiMCSponge(rows * cols * depth, 220, 1);
+    component mimc = MiMCSponge(rows * cols * depth, 91, 1);
     mimc.k <== 0;
 
     for (var row = 0; row < rows; row++) {
@@ -26,7 +26,7 @@ template MimcHashMatrix4D(rows, cols, depth, dim4length) {
     signal input matrix[rows][cols][depth][dim4length];
     signal output hash;
 
-    component mimc = MiMCSponge(rows * cols * depth * dim4length, 220, 1);
+    component mimc = MiMCSponge(rows * cols * depth * dim4length, 91, 1);
     mimc.k <== 0;
 
     for (var row = 0; row < rows; row++) {

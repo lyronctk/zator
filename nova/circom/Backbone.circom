@@ -1,12 +1,11 @@
 pragma circom 2.1.1;
-include "./node_modules/circomlib-ml/circuits/ReLU.circom";
-include "./node_modules/circomlib-ml/circuits/circomlib/mimc.circom";
-include "./node_modules/circomlib-ml/circuits/Conv2D.circom";
+include "./node_modules/circomlib-ml/circuits/Poly.circom";
+// include "./node_modules/circomlib-ml/circuits/circomlib/mimc.circom";
 include "./node_modules/circomlib-ml/circuits/Conv2D.circom";
 include "./utils/mimcsponge.circom";
 include "./utils/utils.circom";
 
-// Template to run ReLu on Dense Layer outputs
+// Template for an intermediary (backbone) Convnet layer
 template Backbone(nRows, nCols, nChannels, nFilters, kernelSize, strides) {
     signal input step_in[2];
     // Input to current layer
@@ -22,6 +21,7 @@ template Backbone(nRows, nCols, nChannels, nFilters, kernelSize, strides) {
     signal activations[convLayerOutputNumElements];
     signal weights_matrix_hash;
     signal bias_vector_hash;
+    var scaleFactor = 10**9;
     signal output step_out[2];
 
     // 1. Check that H(x) = v_n
@@ -37,16 +37,17 @@ template Backbone(nRows, nCols, nChannels, nFilters, kernelSize, strides) {
     convLayer.weights <== W;
     convLayer.bias <== b;
 
-    component relu[convLayerOutputNumElements];
-    // Now ReLu all of the elements in the 3D Matrix output of our Conv2D Layer
-    // The ReLu'd outputs are stored in a flattened activations vector
+    component poly[convLayerOutputNumElements];
+    // Now poly all of the elements in the 3D Matrix output of our Conv2D Layer
+    // The poly'd outputs are stored in a flattened activations vector
     for (var row = 0; row < convLayerOutputRows; row++) {
         for (var col = 0; col < convLayerOutputCols; col++) {
             for (var depth = 0; depth < convLayerOutputDepth; depth++) {
                 var indexFlattenedVector = (row * convLayerOutputCols * convLayerOutputDepth) + (col * convLayerOutputDepth) + depth;
-                relu[indexFlattenedVector] = ReLU();
-                relu[indexFlattenedVector].in <== convLayer.out[row][col][depth];
-                activations[indexFlattenedVector] <== relu[indexFlattenedVector].out;
+                poly[indexFlattenedVector] = Poly(1);
+                poly[indexFlattenedVector].in <== convLayer.out[row][col][depth];
+                // Floor divide by the scale factor
+                activations[indexFlattenedVector] <== poly[indexFlattenedVector].out \ scaleFactor;
             }
         }
     }
@@ -78,4 +79,4 @@ template Backbone(nRows, nCols, nChannels, nFilters, kernelSize, strides) {
     step_out[1] <== 456; // [TMP]
 }
 
-component main { public [step_in] } = Backbone(4, 4, 2, 2, 3, 1);
+component main { public [step_in] } = Backbone(4 + 2, 4 + 2, 2, 2, 3, 1);

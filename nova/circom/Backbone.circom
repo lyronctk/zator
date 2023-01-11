@@ -79,4 +79,4 @@ template Backbone(nRows, nCols, nChannels, nFilters, kernelSize, strides) {
     step_out[1] <== 456; // [TMP]
 }
 
-component main { public [step_in] } = Backbone(28, 28, 4, 4, 3, 1);
+component main { public [step_in] } = Backbone(4, 4, 2, 2, 3, 1);

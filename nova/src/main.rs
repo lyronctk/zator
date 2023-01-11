@@ -255,8 +255,8 @@ fn spartan(
 
 fn main() {
     let root = current_dir().unwrap();
-    let backbone_r1cs = load_r1cs(&root.join(BACKBONE_R1CS_F));
-    let backbone_wasm = root.join(BACKBONE_WASM_F);
+    // let backbone_r1cs = load_r1cs(&root.join(BACKBONE_R1CS_F));
+    // let backbone_wasm = root.join(BACKBONE_WASM_F);
     let mimc3d_r1cs = load_r1cs(&root.join(MIMC3D_R1CS_F));
     let mimc3d_wasm = root.join(MIMC3D_WASM_F);
 
@@ -268,7 +268,7 @@ fn main() {
     println!("==");
 
     println!("== Creating circuit public parameters");
-    let pp = setup(&backbone_r1cs);
+    // let pp = setup(&backbone_r1cs);
     println!("==");
 
     println!("== Constructing inputs");
@@ -276,11 +276,11 @@ fn main() {
     println!("==");
 
     println!("== Executing recursion using Nova");
-    let recursive_snark = recursion(backbone_wasm, backbone_r1cs, &inputs, &pp, num_steps);
+    // let recursive_snark = recursion(backbone_wasm, backbone_r1cs, &inputs, &pp, num_steps);
     println!("==");
 
     println!("== Producing a CompressedSNARK using Spartan w/ IPA-PC");
-    let _compressed_snark = spartan(&pp, recursive_snark, num_steps, &inputs);
+    // let _compressed_snark = spartan(&pp, recursive_snark, num_steps, &inputs);
     println!("==");
 
     println!("** Total time to completion: ({:?})", start.elapsed());

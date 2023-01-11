@@ -27,9 +27,6 @@ type S2 = nova_snark::spartan_with_ipa_pc::RelaxedR1CSSNARK<G2>;
 
 const FWD_PASS_F: &str = "../models/json/inp1_two_conv_mnist.json";
 
-const UPDATE_PROVING_PARAMS: bool = true; 
-const PROVING_PARAMS_F: &str = "./out/pp.json";
-
 const MIMC3D_R1CS_F: &str = "./circom/out/MiMC3D.r1cs";
 const MIMC3D_WASM_F: &str = "./circom/out/MiMC3D.wasm";
 const BACKBONE_R1CS_F: &str = "./circom/out/Backbone.r1cs";
@@ -94,11 +91,7 @@ fn read_fwd_pass(f: &str) -> ForwardPass {
  * Generates public parameters for Nova.
  */
 fn setup(r1cs: &R1CS<F1>) -> PublicParams<G1, G2, C1, C2> {
-    if (UPDATE_PROVING_PARAMS) {
-        let pp = create_public_params(r1cs.clone());
-        
-        serde_json::write_to_file(pp);
-    }
+    let pp = create_public_params(r1cs.clone());
 
     println!(
         "- Number of constraints per step (primary): {}",
@@ -263,8 +256,8 @@ fn spartan(
 
 fn main() {
     let root = current_dir().unwrap();
-    // let backbone_r1cs = load_r1cs(&root.join(BACKBONE_R1CS_F));
-    // let backbone_wasm = root.join(BACKBONE_WASM_F);
+    let backbone_r1cs = load_r1cs(&root.join(BACKBONE_R1CS_F));
+    let backbone_wasm = root.join(BACKBONE_WASM_F);
     let mimc3d_r1cs = load_r1cs(&root.join(MIMC3D_R1CS_F));
     let mimc3d_wasm = root.join(MIMC3D_WASM_F);
 
@@ -276,7 +269,7 @@ fn main() {
     println!("==");
 
     println!("== Creating circuit public parameters");
-    // let pp = setup(&backbone_r1cs);
+    let pp = setup(&backbone_r1cs);
     println!("==");
 
     println!("== Constructing inputs");
@@ -284,11 +277,11 @@ fn main() {
     println!("==");
 
     println!("== Executing recursion using Nova");
-    // let recursive_snark = recursion(backbone_wasm, backbone_r1cs, &inputs, &pp, num_steps);
+    let recursive_snark = recursion(backbone_wasm, backbone_r1cs, &inputs, &pp, num_steps);
     println!("==");
 
     println!("== Producing a CompressedSNARK using Spartan w/ IPA-PC");
-    // let _compressed_snark = spartan(&pp, recursive_snark, num_steps, &inputs);
+    let _compressed_snark = spartan(&pp, recursive_snark, num_steps, &inputs);
     println!("==");
 
     println!("** Total time to completion: ({:?})", start.elapsed());

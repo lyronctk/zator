@@ -177,7 +177,7 @@ def main():
     y1 = model.presoftmax(X1).detach()
 
     X1 = X1.reshape(DIMS, DIMS, 1)
-
+    import pdb; pdb.set_trace()
     # export weights to json
     with open('json/inp1_two_conv_mnist.json', 'w') as json_file:
         in_json = {

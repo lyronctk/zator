@@ -6,16 +6,19 @@ include "./utils/mimcsponge.circom";
 include "./utils/utils.circom";
 
 // Template for an intermediary (backbone) Convnet layer
-template Backbone(nRows, nCols, nChannels, nFilters, kernelSize, strides) {
+template Backbone(nRows, nCols, nChannels, nFilters, kernelSize, strides, padding) {
+    var paddedRows = nRows + padding * 2;
+    var paddedCols = nCols + padding * 2;
+
     signal input step_in[2];
     // Input to current layer
-    signal input x[nRows][nCols][nChannels];
+    signal input x[paddedRows][paddedCols][nChannels];
     // Weights for current layer
     signal input W[kernelSize][kernelSize][nChannels][nFilters];
     // Bias vector
     signal input b[nFilters];
-    var convLayerOutputRows = (nRows-kernelSize)\strides+1;
-    var convLayerOutputCols = (nCols-kernelSize)\strides+1;
+    var convLayerOutputRows = (paddedRows-kernelSize)\strides+1;
+    var convLayerOutputCols = (paddedCols-kernelSize)\strides+1;
     var convLayerOutputDepth = nFilters;
     var convLayerOutputNumElements = convLayerOutputRows * convLayerOutputCols * convLayerOutputDepth;
     signal activations[convLayerOutputNumElements];
@@ -26,13 +29,16 @@ template Backbone(nRows, nCols, nChannels, nFilters, kernelSize, strides) {
 
     // 1. Check that H(x) = v_n
     // v_n is H(a_{n-1}) where (a_{n - 1}) is the output of the previous Convolutional Layer (the activations) that is flattened and run through ReLu
-    component mimc_previous_activations = MimcHashMatrix3D(nRows, nCols, nChannels);
-    mimc_previous_activations.matrix <== x;
-    step_in[1] === mimc_previous_activations.hash;
+    component mimc_previous_activations = MimcHashMatrix3D(convLayerOutputRows, convLayerOutputCols, nChannels);
+    for (var i = 0; i < nRows; i++)
+        for (var j = 0; j < nCols; j++)
+            mimc_previous_activations.matrix[i][j] <== x[i + padding][j + padding];
+    log(mimc_previous_activations.hash);
+    // step_in[1] === mimc_previous_activations.hash;
 
     // 2. Generate Convolutional Network Output, Relu elements of 3D Matrix, and 
     // place the output into a flattened activations vector
-    component convLayer = Conv2D(nRows, nCols, nChannels, nFilters, kernelSize, strides);
+    component convLayer = Conv2D(paddedRows, paddedCols, nChannels, nFilters, kernelSize, strides);
     convLayer.in <== x;
     convLayer.weights <== W;
     convLayer.bias <== b;
@@ -77,4 +83,4 @@ template Backbone(nRows, nCols, nChannels, nFilters, kernelSize, strides) {
     step_out[1] <== mimc_hash_activations.outs[0];
 }
 
-component main { public [step_in] } = Backbone(4 + 2, 4 + 2, 2, 2, 3, 1);
+component main { public [step_in] } = Backbone(4, 4, 2, 2, 3, 1, 1);

@@ -25,11 +25,15 @@ type C2 = TrivialTestCircuit<<G2 as Group>::Scalar>;
 type S1 = nova_snark::spartan_with_ipa_pc::RelaxedR1CSSNARK<G1>;
 type S2 = nova_snark::spartan_with_ipa_pc::RelaxedR1CSSNARK<G2>;
 
+const FWD_PASS_F: &str = "../models/json/inp1_two_conv_mnist.json";
+
+const UPDATE_PROVING_PARAMS: bool = true; 
+const PROVING_PARAMS_F: &str = "./out/pp.json";
+
 const MIMC3D_R1CS_F: &str = "./circom/out/MiMC3D.r1cs";
 const MIMC3D_WASM_F: &str = "./circom/out/MiMC3D.wasm";
 const BACKBONE_R1CS_F: &str = "./circom/out/Backbone.r1cs";
 const BACKBONE_WASM_F: &str = "./circom/out/Backbone.wasm";
-const FWD_PASS_F: &str = "../models/json/inp1_two_conv_mnist.json";
 
 #[derive(Serialize)]
 struct MiMC3DInput {
@@ -90,7 +94,11 @@ fn read_fwd_pass(f: &str) -> ForwardPass {
  * Generates public parameters for Nova.
  */
 fn setup(r1cs: &R1CS<F1>) -> PublicParams<G1, G2, C1, C2> {
-    let pp = create_public_params(r1cs.clone());
+    if (UPDATE_PROVING_PARAMS) {
+        let pp = create_public_params(r1cs.clone());
+        
+        serde_json::write_to_file(pp);
+    }
 
     println!(
         "- Number of constraints per step (primary): {}",

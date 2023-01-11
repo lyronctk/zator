@@ -10,4 +10,4 @@ template MiMC3D(H, W, D) {
     h <== MimcHashMatrix3D(H, W, D)(arr);
 }
 
-component main { public [ dummy ] } = MiMC3D(4, 4, 2);
+component main { public [ dummy ] } = MiMC3D(4 + 2, 4 + 2, 2);

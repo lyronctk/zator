@@ -26,9 +26,9 @@ template Backbone(nRows, nCols, nChannels, nFilters, kernelSize, strides) {
 
     // 1. Check that H(x) = v_n
     // v_n is H(a_{n-1}) where (a_{n - 1}) is the output of the previous Convolutional Layer (the activations) that is flattened and run through ReLu
-    // component mimc_previous_activations = MimcHashMatrix3D(nRows, nCols, nChannels);
-    // mimc_previous_activations.matrix <== x;
-    // step_in[1] === mimc_previous_activations.hash;
+    component mimc_previous_activations = MimcHashMatrix3D(nRows, nCols, nChannels);
+    mimc_previous_activations.matrix <== x;
+    step_in[1] === mimc_previous_activations.hash;
 
     // 2. Generate Convolutional Network Output, Relu elements of 3D Matrix, and 
     // place the output into a flattened activations vector
@@ -53,30 +53,28 @@ template Backbone(nRows, nCols, nChannels, nFilters, kernelSize, strides) {
     }
 
     // 3. Update running hash parameter p_{n+1}
-    // component mimc_weights_matrix = MimcHashMatrix4D(kernelSize, kernelSize, nChannels, nFilters);
-    // mimc_weights_matrix.matrix <== W;
-    // weights_matrix_hash <== mimc_weights_matrix.hash;
+    component mimc_weights_matrix = MimcHashMatrix4D(kernelSize, kernelSize, nChannels, nFilters);
+    mimc_weights_matrix.matrix <== W;
+    weights_matrix_hash <== mimc_weights_matrix.hash;
 
-    // component mimc_bias_vector = MiMCSponge(nFilters, 220, 1);
-    // mimc_bias_vector.ins <== b;
-    // mimc_bias_vector.k <== 0;
-    // bias_vector_hash <== mimc_bias_vector.outs[0];
+    component mimc_bias_vector = MiMCSponge(nFilters, 220, 1);
+    mimc_bias_vector.ins <== b;
+    mimc_bias_vector.k <== 0;
+    bias_vector_hash <== mimc_bias_vector.outs[0];
     
-    // // Now p_{n+1} = Hash(p_n, Hash(Weights matrix), hash(bias vector))
-    // component pn_compositive_mimc = MiMCSponge(3, 220, 1);
-    // pn_compositive_mimc.ins[0] <== step_in[0];
-    // pn_compositive_mimc.ins[1] <== weights_matrix_hash;
-    // pn_compositive_mimc.ins[2] <== bias_vector_hash;
-    // pn_compositive_mimc.k <== 0;
-    // step_out[0] <== pn_compositive_mimc.outs[0];
-    step_out[0] <== 123; // [TMP]
+    // Now p_{n+1} = Hash(p_n, Hash(Weights matrix), hash(bias vector))
+    component pn_compositive_mimc = MiMCSponge(3, 220, 1);
+    pn_compositive_mimc.ins[0] <== step_in[0];
+    pn_compositive_mimc.ins[1] <== weights_matrix_hash;
+    pn_compositive_mimc.ins[2] <== bias_vector_hash;
+    pn_compositive_mimc.k <== 0;
+    step_out[0] <== pn_compositive_mimc.outs[0];
 
     // 4. Compute v_{n+1} = H(Relu(Ax + b))
-    // component mimc_hash_activations = MiMCSponge(convLayerOutputNumElements, 220, 1);
-    // mimc_hash_activations.ins <== activations;
-    // mimc_hash_activations.k <== 0;
-    // step_out[1] <== mimc_hash_activations.outs[0];
-    step_out[1] <== 456; // [TMP]
+    component mimc_hash_activations = MiMCSponge(convLayerOutputNumElements, 220, 1);
+    mimc_hash_activations.ins <== activations;
+    mimc_hash_activations.k <== 0;
+    step_out[1] <== mimc_hash_activations.outs[0];
 }
 
 component main { public [step_in] } = Backbone(4 + 2, 4 + 2, 2, 2, 3, 1);

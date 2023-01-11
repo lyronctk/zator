@@ -27,24 +27,24 @@ class Net(nn.Module):
     def presoftmax(self, x):
         # first conv will not be layered...
         x = self.conv1(x)
-        x = F.relu(x)
-        x = torch.floor(x)
+        x = self.poly(x)
 
         # second conv will be layered
         x = self.conv2(x)
-        x = F.relu(x)
-        x = torch.floor(x)
+        x = self.poly(x)
 
         # third conv will be layered
         x = self.conv3(x)
-        x = F.relu(x)
-        x = torch.floor(x)
+        x = self.poly(x)
 
         # this will be also saved
         x = x.view(-1, DIMS*DIMS*2) # 64 x 3136/2
         # print(x.shape)
         x = self.fc1(x)
         return x
+
+    def poly(self, x):
+        return x ** 2 + x
 
 
 def train(args, model, device, train_loader, optimizer, epoch):

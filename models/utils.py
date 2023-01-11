@@ -68,11 +68,11 @@ component main { public [prevHash, in] } = TailLayer();"""
 
 def smoke():
     arr = "["
-    for i in range(3136):
+    for i in range(32):
         arr += "0"
         if i != 3135:
             arr += ","
     arr += "]"
     pyperclip.copy(arr)
 
-copy_data()
+smoke()

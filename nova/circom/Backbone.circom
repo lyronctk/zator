@@ -17,8 +17,7 @@ template Backbone(nRows, nCols, nChannels, nFilters, kernelSize, strides) {
     var convLayerOutputRows = (nRows-kernelSize)\strides+1;
     var convLayerOutputCols = (nCols-kernelSize)\strides+1;
     var convLayerOutputDepth = nFilters;
-    var convLayerOutputNumElements = convLayerOutputRows * convLayerOutputCols * convLayerOutputDepth;
-    signal activations[convLayerOutputNumElements];
+    signal activations[convLayerOutputRows][convLayerOutputCols][convLayerOutputDepth];
     signal weights_matrix_hash;
     signal bias_vector_hash;
     var scaleFactor = 10**9;
@@ -37,17 +36,16 @@ template Backbone(nRows, nCols, nChannels, nFilters, kernelSize, strides) {
     convLayer.weights <== W;
     convLayer.bias <== b;
 
-    component poly[convLayerOutputNumElements];
+    component poly[convLayerOutputRows][convLayerOutputCols][convLayerOutputDepth];
     // Now poly all of the elements in the 3D Matrix output of our Conv2D Layer
     // The poly'd outputs are stored in a flattened activations vector
     for (var row = 0; row < convLayerOutputRows; row++) {
         for (var col = 0; col < convLayerOutputCols; col++) {
             for (var depth = 0; depth < convLayerOutputDepth; depth++) {
-                var indexFlattenedVector = (row * convLayerOutputCols * convLayerOutputDepth) + (col * convLayerOutputDepth) + depth;
-                poly[indexFlattenedVector] = Poly(1);
-                poly[indexFlattenedVector].in <== convLayer.out[row][col][depth];
+                poly[row][col][depth] = Poly(1);
+                poly[row][col][depth].in <== convLayer.out[row][col][depth];
                 // Floor divide by the scale factor
-                activations[indexFlattenedVector] <== poly[indexFlattenedVector].out \ scaleFactor;
+                activations[row][col][depth] <== poly[row][col][depth].out \ scaleFactor;
             }
         }
     }
@@ -70,11 +68,10 @@ template Backbone(nRows, nCols, nChannels, nFilters, kernelSize, strides) {
     pn_compositive_mimc.k <== 0;
     step_out[0] <== pn_compositive_mimc.outs[0];
 
-    // 4. Compute v_{n+1} = H(Relu(Ax + b))
-    component mimc_hash_activations = MiMCSponge(convLayerOutputNumElements, 220, 1);
-    mimc_hash_activations.ins <== activations;
-    mimc_hash_activations.k <== 0;
-    step_out[1] <== mimc_hash_activations.outs[0];
+    // 4. Compute v_{n+1} = hash of the activations for this layer
+    component mimc_hash_activations = MimcHashMatrix3D(convLayerOutputRows, convLayerOutputCols, convLayerOutputDepth);
+    mimc_hash_activations.matrix <== activations;
+    step_out[1] <== mimc_hash_activations.hash;
 }
 
 component main { public [step_in] } = Backbone(4 + 2, 4 + 2, 2, 2, 3, 1);

@@ -25,68 +25,68 @@ template HeadLayer(nRows, nCols, nChannels, nFilters, kernelSize, strides) {
       [
         [
           [
-            110095859,
-            1968937
+            0,
+            0
           ]
         ],
         [
           [
-            163379773,
-            143442363
+            0,
+            0
           ]
         ],
         [
           [
-            -85406423,
-            -165240899
+            0,
+            0
           ]
         ]
       ],
       [
         [
           [
-            -123848811,
-            318512261
+            0,
+            0
           ]
         ],
         [
           [
-            -203423515,
-            153684407
+            0,
+            0
           ]
         ],
         [
           [
-            476588398,
-            -46351999
+            0,
+            0
           ]
         ]
       ],
       [
         [
           [
-            17474651,
-            347578406
+            0,
+            0
           ]
         ],
         [
           [
-            398471206,
-            382686049
+            0,
+            0
           ]
         ],
         [
           [
-            512695074,
-            -145270959
+            0,
+            0
           ]
         ]
       ]
     ];
     
     var b[nFilters] = [
-      528606474,
-      517328024
+      0,
+      0
     ];
 
     // 2. Generate Convolutional Network Output, Poly elements of 3D Matrix, and 
@@ -111,10 +111,11 @@ template HeadLayer(nRows, nCols, nChannels, nFilters, kernelSize, strides) {
         }
     }
 
-    component mimc_hash_activations = MiMCSponge(convLayerOutputNumElements, 220, 1);
-    mimc_hash_activations.ins <== activations;
-    mimc_hash_activations.k <== 0;
-    out <== mimc_hash_activations.outs[0];
+    // component mimc_hash_activations = MiMCSponge(convLayerOutputNumElements, 220, 1);
+    // mimc_hash_activations.ins <== activations;
+    // mimc_hash_activations.k <== 0;
+    // out <== mimc_hash_activations.outs[0];
+    out <== 1234;
 }
 
 // Dimensions are 4x4, and we add a padding of 2 

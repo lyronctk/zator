@@ -1,6 +1,6 @@
-# zk cake
+# zator
 
-prove the execution of resnets w/ recursive snarks 
+prove the execution of deep resnets w/ recursive snarks 
 
 ## Circuit Design
 For an L-layer CNN. Bulk of the encoding done by the Backbone, where layers are verified with recursive SNARKs using Nova. Head & Tail layers are verified with single circuits that have model parameters directly built in. 
@@ -56,3 +56,22 @@ For an L-layer CNN. Bulk of the encoding done by the Backbone, where layers are 
 1. Check that $H(a_{L-1}) = v_{L-1}$
 1. Convolve $W_L$ / $b_L$ over $a_{L-1}$ to produce $a_L$
 1. Compute $v_L = H(a_L)$
+
+## Demo #1 Notes
+### why (shivam)
+- why zkml?
+- snarked models today: entire model in one circuit, need a massive AWS instance to generate proof for mobilenets 
+- apply recursive snarks to have infinite-depth models
+
+### how (lyron)
+- use nova for recursion, diff approach than usual, instead of generating snark proof at each step, folding, so cost is equal to proving a single R1CS instance
+- nova needs identical structure for each step, motivated gator design
+- head / backbone / tail 
+- proof: "we have a model that hashes to X that, when fed an input that hashes to Y, outputs Z"
+
+### status / roadblocks (varun)
+- private model / private input setting, then can convert into other settings using commit-reveal
+- circuits mostly written, recursive structure done
+- making commitemnts to model / data, tried dense networks, why we're doing convolutional now, chained parameter hash
+- proper way to do quantization is fixed point arithmetic, chose a simpler scheme 
+

@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 
 import json
 
+DIMS = 4
 
 class Net(nn.Module):
     def __init__(self):
@@ -18,7 +19,7 @@ class Net(nn.Module):
         self.conv1 = nn.Conv2d(1, 2, 3, 1, padding=1)
         self.conv2 = nn.Conv2d(2, 2, 3, 1, padding=1)
         self.conv3 = nn.Conv2d(2, 2, 3, 1, padding=1)
-        self.fc1 = nn.Linear(28*28*2, 10)
+        self.fc1 = nn.Linear(DIMS*DIMS*2, 10)
 
     def forward(self, x):
         return F.log_softmax(self.presoftmax(x), dim=1)
@@ -27,17 +28,20 @@ class Net(nn.Module):
         # first conv will not be layered...
         x = self.conv1(x)
         x = F.relu(x)
+        x = torch.floor(x)
 
         # second conv will be layered
         x = self.conv2(x)
         x = F.relu(x)
+        x = torch.floor(x)
 
         # third conv will be layered
         x = self.conv3(x)
         x = F.relu(x)
+        x = torch.floor(x)
 
         # this will be also saved
-        x = x.view(-1, 28*28*2) # 64 x 3136/2
+        x = x.view(-1, DIMS*DIMS*2) # 64 x 3136/2
         # print(x.shape)
         x = self.fc1(x)
         return x
@@ -88,7 +92,7 @@ def main():
                         help='input batch size for training (default: 64)')
     parser.add_argument('--test-batch-size', type=int, default=1000, metavar='N',
                         help='input batch size for testing (default: 1000)')
-    parser.add_argument('--epochs', type=int, default=5, metavar='N',
+    parser.add_argument('--epochs', type=int, default=3, metavar='N',
                         help='number of epochs to train (default: 14)')
     parser.add_argument('--lr', type=float, default=1.0, metavar='LR',
                         help='learning rate (default: 1.0)')
@@ -130,7 +134,8 @@ def main():
 
     transform = transforms.Compose([
         transforms.ToTensor(),
-        transforms.Normalize((0.1307,), (0.3081,))
+        transforms.Normalize((0.1307,), (0.3081,)),
+        transforms.Resize((4, 4))
     ])
     dataset1 = datasets.MNIST('../data', train=True, download=True,
                               transform=transform)
@@ -166,20 +171,20 @@ def main():
     model.conv2.register_forward_hook(get_activation('conv2'))
     model.conv3.register_forward_hook(get_activation('conv3'))
 
-    y1 = model.presoftmax(X1).detach()
-    
-    print((model.state_dict()['conv1.weight'].numpy()*(10**9)).round().astype(int).T.shape)
-    print((model.state_dict()['conv2.weight'].numpy()*(10**9)).round().astype(int).T.shape)
-    print((model.state_dict()['conv3.weight'].numpy()*(10**9)).round().astype(int).T.shape)
+    print(model.state_dict()['conv2.weight'].numpy())
+    print(model.state_dict()['conv2.weight'].numpy().shape)
 
-    X1 = X1.reshape(28, 28, 1)
+    y1 = model.presoftmax(X1).detach()
+
+    X1 = X1.reshape(DIMS, DIMS, 1)
+
     # export weights to json
     with open('json/inp1_two_conv_mnist.json', 'w') as json_file:
         in_json = {
             "x": X1.numpy().astype(int).tolist(),
             "head": {
-                "W": (model.state_dict()['conv1.weight'].numpy()*(10**9)).round().astype(int).T.tolist(),
-                "b": (model.state_dict()['conv1.bias'].numpy()*(10**9)).round().astype(int).tolist(),
+                "W": (model.state_dict()['conv1.weight'].numpy()).round().astype(int).T.tolist(),
+                "b": (model.state_dict()['conv1.bias'].numpy()).round().astype(int).tolist(),
                 "a": activation['conv1'].numpy().astype(int).tolist()[0]
             },
             "backbone": [
@@ -215,7 +220,7 @@ def main():
 
     y2 = model.presoftmax(X2).detach()
 
-    X2 = X2.reshape(28, 28, 1)
+    X2 = X2.reshape(DIMS, DIMS, 1)
 
     with open('json/inp2_two_conv_mnist.json', 'w') as json_file:
         in_json = {

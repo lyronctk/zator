@@ -7,6 +7,7 @@ import torch.optim as optim
 from torchvision import datasets, transforms
 from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import Dataset
+import numpy as np
 import matplotlib.pyplot as plt
 
 import json
@@ -179,7 +180,8 @@ def main():
     y1 = model.presoftmax(X1).detach()
 
     X1 = X1.reshape(DIMS, DIMS, 1)
-    import pdb; pdb.set_trace();
+    # import pdb; pdb.set_trace();
+
     # export weights to json
     with open('json/inp1_two_conv_mnist.json', 'w') as json_file:
         in_json = {
@@ -187,18 +189,18 @@ def main():
             "head": {
                 "W": (model.state_dict()['conv1.weight'].numpy()).round().astype(int).T.tolist(),
                 "b": (model.state_dict()['conv1.bias'].numpy()).round().astype(int).tolist(),
-                "a": activation['conv1'].numpy().astype(int).reshape(4, 4, 2).tolist()
+                "a": np.transpose(activation['conv1'].numpy().astype(int).squeeze(), (1, 2, 0)).tolist()
             },
             "backbone": [
                 {
-                    "W": (model.state_dict()['conv2.weight'].numpy()*(10**9)).round().astype(int).T.tolist(),
+                    "W": np.transpose((model.state_dict()['conv2.weight'].numpy()*(10**9)).round().astype(int), (2, 3, 1, 0)).tolist(),
                     "b": (model.state_dict()['conv2.bias'].numpy()*(10**9)).round().astype(int).tolist(),
-                    "a": activation['conv2'].numpy().astype(int).tolist()[0]
+                    "a": np.transpose(activation['conv2'].numpy().astype(int).squeeze(), (1, 2, 0)).tolist()
                 },
                 {
-                    "W": (model.state_dict()['conv3.weight'].numpy()*(10**9)).round().astype(int).T.tolist(),
+                    "W": np.transpose((model.state_dict()['conv3.weight'].numpy()*(10**9)).round().astype(int), (2, 3, 1, 0)).tolist(),
                     "b": (model.state_dict()['conv3.bias'].numpy()*(10**9)).round().astype(int).tolist(),
-                    "a": activation['conv3'].numpy().astype(int).tolist()[0]
+                    "a": np.transpose(activation['conv3'].numpy().astype(int).squeeze(), (1, 2, 0)).tolist()
                 }
             ],
             "tail": {

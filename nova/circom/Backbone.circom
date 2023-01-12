@@ -28,12 +28,12 @@ template Backbone(nRows, nCols, nChannels, nFilters, kernelSize, strides, paddin
     signal output step_out[2];
 
     // 1. Check that H(x) = v_n
-    // v_n is H(a_{n-1}) where (a_{n - 1}) is the output of the previous Convolutional Layer (the activations) that is flattened and run through ReLu
-    // component mimc_previous_activations = MimcHashMatrix3D(convLayerOutputRows, convLayerOutputCols, nChannels);
-    // for (var i = 0; i < nRows; i++)
-    //     for (var j = 0; j < nCols; j++)
-    //         mimc_previous_activations.matrix[i][j] <== a_prev[i + padding][j + padding];
-    // step_in[1] === mimc_previous_activations.hash;
+    v_n is H(a_{n-1}) where (a_{n - 1}) is the output of the previous Convolutional Layer (the activations) that is flattened and run through ReLu
+    component mimc_previous_activations = MimcHashMatrix3D(convLayerOutputRows, convLayerOutputCols, nChannels);
+    for (var i = 0; i < nRows; i++)
+        for (var j = 0; j < nCols; j++)
+            mimc_previous_activations.matrix[i][j] <== a_prev[i + padding][j + padding];
+    step_in[1] === mimc_previous_activations.hash;
 
     // 2. Generate Convolutional Network Output, Relu elements of 3D Matrix, and 
     // place the output into a flattened activations vector
@@ -41,16 +41,6 @@ template Backbone(nRows, nCols, nChannels, nFilters, kernelSize, strides, paddin
     convLayer.in <== a_prev;
     convLayer.weights <== W;
     convLayer.bias <== b;
-
-    log("- FOR [2, 2, 1]"); // NEEDS TO BE 2,913,420,680
-    // for (var i = 0; i < kernelSize; i++)
-    //     for (var j = 0; j < kernelSize; j++)
-    //         log(W[i][j][0][1]);
-    log(convLayer.out[2][2][1]);
-    // log(a_prev[2][2]);
-    // for (var i = 0; i < paddedRows; i++)
-    //     for (var j = 0; j < paddedCols; j++) 
-    //         log(a_prev[i][j][1]);
 
     component relu[convLayerOutputRows][convLayerOutputCols][convLayerOutputDepth];
     // Now poly all of the elements in the 3D Matrix output of our Conv2D Layer
@@ -62,13 +52,6 @@ template Backbone(nRows, nCols, nChannels, nFilters, kernelSize, strides, paddin
                 relu[row][col][depth].in <== convLayer.out[row][col][depth];
                 // Floor divide by the scale factor
                 activations[row][col][depth] <== relu[row][col][depth].out \ scaleFactor;
-
-                // if (row == 0 && col == 2 && depth == 1) {
-                    // log("- before and after");
-                    // log(convLayer.out[row][col][depth]);
-                    // log(relu[row][col][depth].out);
-                    // log(activations[row][col][depth]);
-                // }
             }
         }
     }
@@ -95,70 +78,6 @@ template Backbone(nRows, nCols, nChannels, nFilters, kernelSize, strides, paddin
     component mimc_hash_activations = MimcHashMatrix3D(convLayerOutputRows, convLayerOutputCols, convLayerOutputDepth);
     mimc_hash_activations.matrix <== activations;
     step_out[1] <== mimc_hash_activations.hash;
-
-    log("= DIMS");
-    log(convLayerOutputRows);
-    log(convLayerOutputCols);
-    log(convLayerOutputDepth);
-    log("=");
-    log("= 2ND CONV LAYER OUT");
-    for (var j = 0; j < convLayerOutputCols; j++)
-        for (var k = 0; k < convLayerOutputDepth; k++)
-            log(activations[1][j][k]);
-
-    /* GOT
-    [
-        [2, 10],
-        [5, 3],
-        [0, 9],
-        [1, 0]
-    ],
-    [
-        [0, 9],
-        [0, 0],
-        [9, 7],
-        [0, 0]
-    ],
-    [
-        [16, 17],
-        [8, 5],
-        [0, 13],
-        [0, 0]
-    ],
-    [
-        [0, 10],
-        [0, 0],
-        [2, 0],
-        [0, 0]
-    ]
-     */
-
-    /* EXPECT
-    [
-        [3, 10],
-        [5, 3],
-        [0, 9],
-        [1, 0]
-    ],
-    [
-        [0, 9],
-        [0, 0],
-        [10, 7],
-        [0, 0]
-    ],
-    [
-        [16, 17],
-        [8, 5],
-        [0, 13],
-        [0, 0]
-    ],
-    [
-        [0, 10],
-        [0, 0],
-        [2, 0],
-        [0, 0]
-    ]
-     */
 }
 
 component main { public [step_in] } = Backbone(4, 4, 2, 2, 3, 1, 1);

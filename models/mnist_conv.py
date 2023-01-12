@@ -12,13 +12,14 @@ import matplotlib.pyplot as plt
 import json
 
 DIMS = 4
+PADDING = 1
 
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
-        self.conv1 = nn.Conv2d(1, 2, 3, 1, padding=1)
-        self.conv2 = nn.Conv2d(2, 2, 3, 1, padding=1)
-        self.conv3 = nn.Conv2d(2, 2, 3, 1, padding=1)
+        self.conv1 = nn.Conv2d(1, 2, 3, 1, padding=PADDING)
+        self.conv2 = nn.Conv2d(2, 2, 3, 1, padding=PADDING)
+        self.conv3 = nn.Conv2d(2, 2, 3, 1, padding=PADDING)
         self.fc1 = nn.Linear(DIMS*DIMS*2, 10)
 
     def forward(self, x):
@@ -204,6 +205,7 @@ def main():
                 "b": (model.state_dict()['fc1.bias'].numpy()*(10**9)).round().astype(int).tolist(),
                 "a": (y1.numpy()*(10**9)).astype(int).flatten().tolist()
             },
+            "padding": PADDING,
             "scale": 10**-9,
             "label": int(y1.argmax())
         }

@@ -11,7 +11,7 @@ use nova_snark::{
 };
 use num_bigint::BigInt;
 use num_traits::Num;
-use pasta_curves::{Fq};
+use pasta_curves::Fq;
 use primitive_types::U256;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -25,7 +25,7 @@ type C2 = TrivialTestCircuit<<G2 as Group>::Scalar>;
 type S1 = nova_snark::spartan_with_ipa_pc::RelaxedR1CSSNARK<G1>;
 type S2 = nova_snark::spartan_with_ipa_pc::RelaxedR1CSSNARK<G2>;
 
-const FWD_PASS_F: &str = "../models/json/inp1_two_conv_mnist.json";
+const FWD_PASS_F: &str = "../models/json/PAD_inp1_two_conv_mnist.json";
 
 const MIMC3D_R1CS_F: &str = "./circom/out/MiMC3D.r1cs";
 const MIMC3D_WASM_F: &str = "./circom/out/MiMC3D.wasm";
@@ -66,6 +66,7 @@ struct ForwardPass {
     head: ConvLayer,
     backbone: Vec<ConvLayer>,
     tail: DenseLayer,
+    padding: usize,
     scale: f64,
     label: u64,
 }
@@ -106,7 +107,7 @@ fn setup(r1cs: &R1CS<F1>) -> PublicParams<G1, G2, C1, C2> {
 }
 
 // On vesta curve
-fn mimc3d(r1cs: &R1CS<F1>, wasm: &PathBuf, arr: &Vec<Vec<Vec<i64>>>) -> BigInt {
+fn mimc3d(r1cs: &R1CS<F1>, wasm: &PathBuf, arr: Vec<Vec<Vec<i64>>>) -> BigInt {
     let witness_gen_input = PathBuf::from("circom_input.json");
     let witness_gen_output = PathBuf::from("circom_witness.wtns");
 
@@ -128,14 +129,25 @@ fn mimc3d(r1cs: &R1CS<F1>, wasm: &PathBuf, arr: &Vec<Vec<Vec<i64>>>) -> BigInt {
     };
     let pub_outputs = circuit.get_public_outputs();
 
-    fs::remove_file(witness_gen_input).unwrap();
-    fs::remove_file(witness_gen_output).unwrap();
+    // fs::remove_file(witness_gen_input).unwrap();
+    // fs::remove_file(witness_gen_output).unwrap();
 
     let stripped = format!("{:?}", pub_outputs[0])
         .strip_prefix("0x")
         .unwrap()
         .to_string();
     BigInt::from_str_radix(&stripped, 16).unwrap()
+}
+
+fn rm_padding(arr: &Vec<Vec<Vec<i64>>>, padding: usize) -> Vec<Vec<Vec<i64>>> {
+    let rows = arr.len() - padding * 2;
+    let cols = arr[0].len() - padding * 2;
+
+    let v = arr
+        .iter()
+        .map(|v| v[padding..padding + cols].to_vec())
+        .collect::<Vec<Vec<Vec<i64>>>>();
+    v[padding..padding + rows].to_vec()
 }
 
 /*
@@ -164,7 +176,12 @@ fn construct_inputs(
         private_inputs.push(priv_in);
     }
 
-    let v_1 = mimc3d(mimc3d_r1cs, mimc3d_wasm, &fwd_pass.head.a).to_str_radix(10);
+    let v_1 = mimc3d(
+        mimc3d_r1cs,
+        mimc3d_wasm,
+        rm_padding(&fwd_pass.head.a, fwd_pass.padding),
+    )
+    .to_str_radix(10);
     let z0_primary = vec![
         Fq::from(0),
         Fq::from_raw(U256::from_dec_str(&v_1).unwrap().0),
@@ -274,6 +291,7 @@ fn main() {
 
     println!("== Constructing inputs");
     let inputs = construct_inputs(&fwd_pass, num_steps, &mimc3d_r1cs, &mimc3d_wasm);
+    println!("{:?}", inputs);
     println!("==");
 
     println!("== Executing recursion using Nova");
@@ -281,7 +299,7 @@ fn main() {
     println!("==");
 
     println!("== Producing a CompressedSNARK using Spartan w/ IPA-PC");
-    let _compressed_snark = spartan(&pp, recursive_snark, num_steps, &inputs);
+    // let _compressed_snark = spartan(&pp, recursive_snark, num_steps, &inputs);
     println!("==");
 
     println!("** Total time to completion: ({:?})", start.elapsed());

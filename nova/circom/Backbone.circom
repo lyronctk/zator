@@ -32,8 +32,7 @@ template Backbone(nRows, nCols, nChannels, nFilters, kernelSize, strides, paddin
     for (var i = 0; i < nRows; i++)
         for (var j = 0; j < nCols; j++)
             mimc_previous_activations.matrix[i][j] <== x[i + padding][j + padding];
-    log(mimc_previous_activations.hash);
-    // step_in[1] === mimc_previous_activations.hash;
+    step_in[1] === mimc_previous_activations.hash;
 
     // 2. Generate Convolutional Network Output, Relu elements of 3D Matrix, and 
     // place the output into a flattened activations vector

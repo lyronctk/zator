@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 
 import json
 
-SCALE = 10e-16
+SCALE = 1e-16
 DIMS = 4
 PADDING = 1
 
@@ -37,14 +37,17 @@ class Net(nn.Module):
         # first conv will not be layered...
         x = self.conv1(x)
         x = F.relu(x)
+        x = torch.floor(x)
 
         # second conv will be layered
         x = self.conv2(x)
         x = F.relu(x)
+        x = torch.floor(x)
 
         # third conv will be layered
         x = self.conv3(x)
         x = F.relu(x)
+        x = torch.floor(x)
 
         # this will be also saved
         x = x.view(-1, DIMS*DIMS*2) # 64 x 3136/2

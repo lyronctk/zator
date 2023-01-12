@@ -24,7 +24,7 @@ template Backbone(nRows, nCols, nChannels, nFilters, kernelSize, strides, paddin
     signal activations[convLayerOutputRows][convLayerOutputCols][convLayerOutputDepth];
     signal weights_matrix_hash;
     signal bias_vector_hash;
-    var scaleFactor = 10**9;
+    var scaleFactor = 10**16;
     signal output step_out[2];
 
     // 1. Check that H(x) = v_n
@@ -104,14 +104,14 @@ template Backbone(nRows, nCols, nChannels, nFilters, kernelSize, strides, paddin
     log("= 2ND CONV LAYER OUT");
     for (var j = 0; j < convLayerOutputCols; j++)
         for (var k = 0; k < convLayerOutputDepth; k++)
-            log(activations[3][j][k]);
+            log(activations[1][j][k]);
 
     /* GOT
     [
         [2, 10],
         [5, 3],
         [0, 9],
-        [1, 0],
+        [1, 0]
     ],
     [
         [0, 9],
@@ -120,7 +120,7 @@ template Backbone(nRows, nCols, nChannels, nFilters, kernelSize, strides, paddin
         [0, 0]
     ],
     [
-        [15, 17],
+        [16, 17],
         [8, 5],
         [0, 13],
         [0, 0]
@@ -135,31 +135,29 @@ template Backbone(nRows, nCols, nChannels, nFilters, kernelSize, strides, paddin
 
     /* EXPECT
     [
-        [
-          [3, 10],
-          [5, 3],
-          [0, 9],
-          [1, 0]
-        ],
-        [
-          [0, 9],
-          [0, 0],
-          [10, 7],
-          [0, 0]
-        ],
-        [
-          [16, 17],
-          [8, 5],
-          [0, 13],
-          [0, 0]
-        ],
-        [
-          [0, 10],
-          [0, 0],
-          [2, 0],
-          [0, 0]
-        ]
-      ]
+        [3, 10],
+        [5, 3],
+        [0, 9],
+        [1, 0]
+    ],
+    [
+        [0, 9],
+        [0, 0],
+        [10, 7],
+        [0, 0]
+    ],
+    [
+        [16, 17],
+        [8, 5],
+        [0, 13],
+        [0, 0]
+    ],
+    [
+        [0, 10],
+        [0, 0],
+        [2, 0],
+        [0, 0]
+    ]
      */
 }
 

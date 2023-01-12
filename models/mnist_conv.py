@@ -15,6 +15,12 @@ import json
 DIMS = 4
 PADDING = 1
 
+class ToInt(object):
+    """Convert ndarrays in sample to Int."""
+
+    def __call__(self, sample):
+        return sample * 255
+
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
@@ -136,8 +142,8 @@ def main():
 
     transform = transforms.Compose([
         transforms.ToTensor(),
-        transforms.Normalize((0.1307,), (0.3081,)),
-        transforms.Resize((4, 4))
+        transforms.Resize((4, 4)),
+        ToInt()
     ])
     dataset1 = datasets.MNIST('../data', train=True, download=True,
                               transform=transform)
@@ -161,7 +167,8 @@ def main():
     print(model.state_dict().keys())
 
     # get first test image
-    X1 = next(iter(test_loader))[0][:1]
+    X1 = next(iter(test_loader))[0][1:2]
+    print(X1)
 
     activation = {}
 

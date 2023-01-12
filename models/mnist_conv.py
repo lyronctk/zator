@@ -36,7 +36,7 @@ class Net(nn.Module):
     def presoftmax(self, x):
         # first conv will not be layered...
         x = self.conv1(x)
-        x = F.relu(x)
+        x = F.relu(x) 
         x = torch.floor(x)
 
         # second conv will be layered

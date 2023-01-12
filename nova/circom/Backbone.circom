@@ -12,7 +12,7 @@ template Backbone(nRows, nCols, nChannels, nFilters, kernelSize, strides, paddin
 
     signal input step_in[2];
     // Input to current layer
-    signal input x[paddedRows][paddedCols][nChannels];
+    signal input a[paddedRows][paddedCols][nChannels];
     // Weights for current layer
     signal input W[kernelSize][kernelSize][nChannels][nFilters];
     // Bias vector
@@ -31,13 +31,13 @@ template Backbone(nRows, nCols, nChannels, nFilters, kernelSize, strides, paddin
     component mimc_previous_activations = MimcHashMatrix3D(convLayerOutputRows, convLayerOutputCols, nChannels);
     for (var i = 0; i < nRows; i++)
         for (var j = 0; j < nCols; j++)
-            mimc_previous_activations.matrix[i][j] <== x[i + padding][j + padding];
+            mimc_previous_activations.matrix[i][j] <== a[i + padding][j + padding];
     step_in[1] === mimc_previous_activations.hash;
 
     // 2. Generate Convolutional Network Output, Relu elements of 3D Matrix, and 
     // place the output into a flattened activations vector
     component convLayer = Conv2D(paddedRows, paddedCols, nChannels, nFilters, kernelSize, strides);
-    convLayer.in <== x;
+    convLayer.in <== a;
     convLayer.weights <== W;
     convLayer.bias <== b;
 
@@ -51,6 +51,9 @@ template Backbone(nRows, nCols, nChannels, nFilters, kernelSize, strides, paddin
                 poly[row][col][depth].in <== convLayer.out[row][col][depth];
                 // Floor divide by the scale factor
                 activations[row][col][depth] <== poly[row][col][depth].out \ scaleFactor;
+                log("- before and after");
+                log(poly[row][col][depth].out);
+                log(activations[row][col][depth]);
             }
         }
     }
@@ -77,6 +80,10 @@ template Backbone(nRows, nCols, nChannels, nFilters, kernelSize, strides, paddin
     component mimc_hash_activations = MimcHashMatrix3D(convLayerOutputRows, convLayerOutputCols, convLayerOutputDepth);
     mimc_hash_activations.matrix <== activations;
     step_out[1] <== mimc_hash_activations.hash;
+
+    // for (var j = 0; j < convLayerOutputCols; j++)
+    //     for (var k = 0; k < convLayerOutputDepth; k++)
+    //         log(activations[0][j][k]);
 }
 
 component main { public [step_in] } = Backbone(4, 4, 2, 2, 3, 1, 1);

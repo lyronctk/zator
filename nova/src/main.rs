@@ -129,8 +129,8 @@ fn mimc3d(r1cs: &R1CS<F1>, wasm: &PathBuf, arr: Vec<Vec<Vec<i64>>>) -> BigInt {
     };
     let pub_outputs = circuit.get_public_outputs();
 
-    // fs::remove_file(witness_gen_input).unwrap();
-    // fs::remove_file(witness_gen_output).unwrap();
+    fs::remove_file(witness_gen_input).unwrap();
+    fs::remove_file(witness_gen_output).unwrap();
 
     let stripped = format!("{:?}", pub_outputs[0])
         .strip_prefix("0x")
@@ -291,7 +291,6 @@ fn main() {
 
     println!("== Constructing inputs");
     let inputs = construct_inputs(&fwd_pass, num_steps, &mimc3d_r1cs, &mimc3d_wasm);
-    println!("{:?}", inputs);
     println!("==");
 
     println!("== Executing recursion using Nova");

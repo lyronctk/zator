@@ -169,7 +169,7 @@ fn construct_inputs(
             &fwd_pass.head.a
         };
         let priv_in = HashMap::from([
-            (String::from("a"), json!(a)),
+            (String::from("a_prev"), json!(a)),
             (String::from("W"), json!(fwd_pass.backbone[i].W)),
             (String::from("b"), json!(fwd_pass.backbone[i].b)),
         ]);

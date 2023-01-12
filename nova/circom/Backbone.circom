@@ -1,5 +1,5 @@
 pragma circom 2.1.1;
-include "./node_modules/circomlib-ml/circuits/Poly.circom";
+include "./node_modules/circomlib-ml/circuits/ReLU.circom";
 // include "./node_modules/circomlib-ml/circuits/circomlib/mimc.circom";
 include "./node_modules/circomlib-ml/circuits/Conv2D.circom";
 include "./utils/mimcsponge.circom";
@@ -12,7 +12,7 @@ template Backbone(nRows, nCols, nChannels, nFilters, kernelSize, strides, paddin
 
     signal input step_in[2];
     // Input to current layer
-    signal input a[paddedRows][paddedCols][nChannels];
+    signal input a_prev[paddedRows][paddedCols][nChannels];
     // Weights for current layer
     signal input W[kernelSize][kernelSize][nChannels][nFilters];
     // Bias vector
@@ -31,29 +31,33 @@ template Backbone(nRows, nCols, nChannels, nFilters, kernelSize, strides, paddin
     component mimc_previous_activations = MimcHashMatrix3D(convLayerOutputRows, convLayerOutputCols, nChannels);
     for (var i = 0; i < nRows; i++)
         for (var j = 0; j < nCols; j++)
-            mimc_previous_activations.matrix[i][j] <== a[i + padding][j + padding];
+            mimc_previous_activations.matrix[i][j] <== a_prev[i + padding][j + padding];
     step_in[1] === mimc_previous_activations.hash;
 
     // 2. Generate Convolutional Network Output, Relu elements of 3D Matrix, and 
     // place the output into a flattened activations vector
     component convLayer = Conv2D(paddedRows, paddedCols, nChannels, nFilters, kernelSize, strides);
-    convLayer.in <== a;
+    convLayer.in <== a_prev;
     convLayer.weights <== W;
     convLayer.bias <== b;
 
-    component poly[convLayerOutputRows][convLayerOutputCols][convLayerOutputDepth];
+    component relu[convLayerOutputRows][convLayerOutputCols][convLayerOutputDepth];
     // Now poly all of the elements in the 3D Matrix output of our Conv2D Layer
     // The poly'd outputs are stored in a flattened activations vector
     for (var row = 0; row < convLayerOutputRows; row++) {
         for (var col = 0; col < convLayerOutputCols; col++) {
             for (var depth = 0; depth < convLayerOutputDepth; depth++) {
-                poly[row][col][depth] = Poly(1);
-                poly[row][col][depth].in <== convLayer.out[row][col][depth];
+                relu[row][col][depth] = ReLU();
+                relu[row][col][depth].in <== convLayer.out[row][col][depth];
                 // Floor divide by the scale factor
-                activations[row][col][depth] <== poly[row][col][depth].out \ scaleFactor;
-                log("- before and after");
-                log(poly[row][col][depth].out);
-                log(activations[row][col][depth]);
+                activations[row][col][depth] <== relu[row][col][depth].out \ scaleFactor;
+
+                if (row == 0 && col == 2 && depth == 1) {
+                    // log("- before and after");
+                    // log(convLayer.out[row][col][depth]);
+                    // log(relu[row][col][depth].out);
+                    // log(activations[row][col][depth]);
+                }
             }
         }
     }
@@ -81,9 +85,104 @@ template Backbone(nRows, nCols, nChannels, nFilters, kernelSize, strides, paddin
     mimc_hash_activations.matrix <== activations;
     step_out[1] <== mimc_hash_activations.hash;
 
-    // for (var j = 0; j < convLayerOutputCols; j++)
-    //     for (var k = 0; k < convLayerOutputDepth; k++)
-    //         log(activations[0][j][k]);
+    log("= DIMS");
+    log(convLayerOutputRows);
+    log(convLayerOutputCols);
+    log(convLayerOutputDepth);
+    log("=");
+    for (var j = 0; j < convLayerOutputCols; j++)
+        for (var k = 0; k < convLayerOutputDepth; k++)
+            log(activations[0][j][k]);
+
+    /* WHAT THE ACTIVATIONS ARE 
+        [
+            [
+                [0, 0],
+                [0, 0],
+                [0, 0],
+                [0, 0]
+            ],
+            [
+                [0, 0],
+                [0, 0],
+                [0, 1],
+                [0, 0]
+            ],
+            [
+                [0, 0],
+                [0, 0],
+                [0, 0],
+                [0, 0]
+            ],
+            [
+                [0, 0],
+                [0, 0],
+                [0, 0],
+                [0, 0]
+            ]
+        ]
+     */
+
+    /* WHAT ACTIVATIONS SHOULD BE 
+    [
+        [
+            [0, 0],
+            [0, 0],
+            [0, 0],
+            [0, 0]
+        ],
+        [
+            [0, 0],
+            [0, 0],
+            [0, 0],
+            [0, 0]
+        ],
+        [
+            [0, 0],
+            [1, 0],
+            [0, 2],
+            [0, 0]
+        ],
+        [
+            [1, 2],
+            [0, 2],
+            [2, 0],
+            [1, 0]
+        ]
+    ]
+     */
+    
+    /* THE ORIGINAL "SHOULD BE" VALUES BEFORE QUANTIZING
+    [
+        [
+            [-0.06403821, 0.05573181],
+            [0.21237072, 0.28679043],
+            [-0.55575663, 0.36764717],
+            [-0.07032471, 0.35468641]
+        ],
+
+        [
+            [0.06481214, -0.01123721],
+            [0.53653842, 0.13507181],
+            [-0.14654291, -0.15124103],
+            [-0.0952409, -0.22362769]
+        ],
+
+        [
+            [0.80927616, 0.6739893],
+            [1.33747363, 0.29734561],
+            [0.70907742, 2.91342068],
+            [0.08909081, 0.66171038]
+        ],
+
+        [
+            [1.50710952, 2.42752337],
+            [-0.7153818, 2.34142041],
+            [2.5546906, -0.43991148],
+            [1.55264199, 0.79182756]
+        ]
+    ]
+     */
 }
 
 component main { public [step_in] } = Backbone(4, 4, 2, 2, 3, 1, 1);

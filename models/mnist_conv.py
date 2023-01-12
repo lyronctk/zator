@@ -28,15 +28,15 @@ class Net(nn.Module):
     def presoftmax(self, x):
         # first conv will not be layered...
         x = self.conv1(x)
-        x = self.poly(x)
+        x = F.relu(x)
 
         # second conv will be layered
         x = self.conv2(x)
-        x = self.poly(x)
+        x = F.relu(x)
 
         # third conv will be layered
         x = self.conv3(x)
-        x = self.poly(x)
+        x = F.relu(x)
 
         # this will be also saved
         x = x.view(-1, DIMS*DIMS*2) # 64 x 3136/2
@@ -179,6 +179,7 @@ def main():
     y1 = model.presoftmax(X1).detach()
 
     X1 = X1.reshape(DIMS, DIMS, 1)
+    import pdb; pdb.set_trace();
     # export weights to json
     with open('json/inp1_two_conv_mnist.json', 'w') as json_file:
         in_json = {

@@ -28,7 +28,7 @@ template Backbone(nRows, nCols, nChannels, nFilters, kernelSize, strides, paddin
     signal output step_out[2];
 
     // 1. Check that H(x) = v_n
-    v_n is H(a_{n-1}) where (a_{n - 1}) is the output of the previous Convolutional Layer (the activations) that is flattened and run through ReLu
+    //    v_n is H(a_{n-1}) where (a_{n - 1}) is the output of the previous Convolutional Layer (the activations) that is flattened and run through ReLu
     component mimc_previous_activations = MimcHashMatrix3D(convLayerOutputRows, convLayerOutputCols, nChannels);
     for (var i = 0; i < nRows; i++)
         for (var j = 0; j < nCols; j++)
@@ -78,6 +78,52 @@ template Backbone(nRows, nCols, nChannels, nFilters, kernelSize, strides, paddin
     component mimc_hash_activations = MimcHashMatrix3D(convLayerOutputRows, convLayerOutputCols, convLayerOutputDepth);
     mimc_hash_activations.matrix <== activations;
     step_out[1] <== mimc_hash_activations.hash;
+
+    // log("STEP OUT [0]:");
+    // log(step_out[0]);
+    // log("STEP OUT [1]:");
+    // log(step_out[1]);
+
+    // for (var j = 0; j < convLayerOutputCols; j++)
+    //     for (var k = 0; k < convLayerOutputDepth; k++)
+    //         log(activations[0][j][k]);
+
+    /*
+    [
+        [
+          [0, 0],
+          [0, 5],
+          [2, 7],
+          [0, 0],
+          [0, 0],
+          [0, 0]
+        ],
+        [
+          [0, 0],
+          [0, 6],
+          [0, 1],
+          [10, 1],
+          [2, 0],
+          [0, 0]
+        ],
+        [
+          [0, 0],
+          [0, 18],
+          [0, 0],
+          [0, 11],
+          [6, 0],
+          [0, 0]
+        ],
+        [
+          [0, 0],
+          [0, 0],
+          [0, 9],
+          [0, 0],
+          [0, 1],
+          [0, 0]
+        ]
+      ]
+    */
 }
 
 component main { public [step_in] } = Backbone(4, 4, 2, 2, 3, 1, 1);

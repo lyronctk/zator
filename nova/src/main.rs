@@ -223,6 +223,9 @@ fn recursion(
     println!("- Done ({:?})", start.elapsed());
 
     println!("- Verifying RecursiveSNARK");
+    println!("num_steps: {:?}", num_steps);
+    println!("z0 PRIMARY: {:?}", inputs.start_pub_primary);
+    println!("z0 SECONDARY: {:?}", inputs.start_pub_secondary);
     let start = Instant::now();
     let res = recursive_snark.verify(
         &pp,

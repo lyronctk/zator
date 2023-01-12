@@ -5,7 +5,7 @@ Prove the execution of arbitrarily deep neural networks via recursive SNARKs.
 ## Background
 The state of Zero-knowledge Machine Learning (ZKML) has made huge advancements in the past few months with the advent of novel proving systems. Prior to these advancements, models were embedded into a single circuit, making it difficult to SNARK large models as the size of the circuit would grow too large. Leveraging new recursive SNARK proving systems such as [Microsoft's Nova](https://github.com/microsoft/Nova), we are able to SNARK neural nets with an arbitrary number of layers. 
 
-![Untitled-2023-01-10-1700](https://user-images.githubusercontent.com/97858468/212001036-613591ab-6fb5-47c7-8369-1d1f58d67fbf.svg)
+![Untitled-2023-01-10-1700](https://user-images.githubusercontent.com/97858468/212182755-d0ceca49-71f3-4ec8-b627-46da56fd7261.svg)
 
 
 ## Circuit Design

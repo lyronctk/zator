@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import json
 
 SCALE = 1e-16
-DIMS = 4
+DIMS = 28
 PADDING = 1
 
 class ToInt(object):
@@ -26,8 +26,10 @@ class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
         self.conv1 = nn.Conv2d(1, 2, 3, 1, padding=PADDING)
-        self.conv2 = nn.Conv2d(2, 2, 3, 1, padding=PADDING)
-        self.conv3 = nn.Conv2d(2, 2, 3, 1, padding=PADDING)
+        # self.conv2 = nn.Conv2d(2, 2, 3, 1, padding=PADDING)
+        # self.conv3 = nn.Conv2d(2, 2, 3, 1, padding=PADDING)
+        for i in range(2, 101):
+            setattr(self, 'conv' + str(i), nn.Conv2d(2, 2, 3, 1, padding=PADDING))
         self.fc1 = nn.Linear(DIMS*DIMS*2, 10)
 
     def forward(self, x):
@@ -39,15 +41,12 @@ class Net(nn.Module):
         x = F.relu(x) 
         x = torch.floor(x)
 
-        # second conv will be layered
-        x = self.conv2(x)
-        x = F.relu(x)
-        x = torch.floor(x)
-
-        # third conv will be layered
-        x = self.conv3(x)
-        x = F.relu(x)
-        x = torch.floor(x)
+        # add layers
+        for i in range(2, 101):
+            x = getattr(self, 'conv' + str(i))(x)
+            x = F.relu(x)
+            x = torch.floor(x)
+        
 
         # this will be also saved
         x = x.view(-1, DIMS*DIMS*2) # 64 x 3136/2
@@ -146,7 +145,7 @@ def main():
 
     transform = transforms.Compose([
         transforms.ToTensor(),
-        transforms.Resize((4, 4)),
+        # transforms.Resize((4, 4)),
         ToInt()
     ])
     dataset1 = datasets.MNIST('../data', train=True, download=True,
@@ -181,9 +180,15 @@ def main():
             activation[name] = output.detach()
         return hook
 
-    model.conv1.register_forward_hook(get_activation('conv1'))
-    model.conv2.register_forward_hook(get_activation('conv2'))
-    model.conv3.register_forward_hook(get_activation('conv3'))
+    # model.conv1.register_forward_hook(get_activation('conv1'))
+    # model.conv2.register_forward_hook(get_activation('conv2'))
+    # model.conv3.register_forward_hook(get_activation('conv3'))
+
+    # register hooks for all conv layers
+    for i in range(2, 101):
+        model.state_dict()[f"conv{i}"].register_forward_hook(get_activation(f"conv{i}"))
+
+
 
     print(model.state_dict()['conv2.weight'].numpy())
     print(model.state_dict()['conv2.weight'].numpy().shape)
@@ -196,6 +201,15 @@ def main():
     print("CONV2 WEIGHT")
     print(np.transpose((model.state_dict()['conv2.weight'].numpy()), (2, 3, 1, 0)))
 
+    # create backbone json
+    backbone = []
+    for i in range(2, 101):
+        backbone.append({
+            "W": np.transpose((model.state_dict()[f"conv{i}.weight"].numpy()/SCALE).astype(int), (2, 3, 1, 0)).tolist(),
+            "b": (model.state_dict()[f"conv{i}.bias"].numpy()/SCALE).astype(int).tolist(),
+            "a": np.transpose(activation[f"conv{i}"].numpy().astype(int).squeeze(), (1, 2, 0)).tolist()
+        })
+
     # export weights to json
     with open('json/inp1_two_conv_mnist.json', 'w') as json_file:
         in_json = {
@@ -205,18 +219,7 @@ def main():
                 "b": (model.state_dict()['conv1.bias'].numpy()).astype(int).tolist(),
                 "a": np.transpose(activation['conv1'].numpy().astype(int).squeeze(), (1, 2, 0)).tolist()
             },
-            "backbone": [
-                {
-                    "W": np.transpose((model.state_dict()['conv2.weight'].numpy()/SCALE).astype(int), (2, 3, 1, 0)).tolist(),
-                    "b": (model.state_dict()['conv2.bias'].numpy()/SCALE).round().astype(int).tolist(),
-                    "a": np.transpose(activation['conv2'].numpy().astype(int).squeeze(), (1, 2, 0)).tolist()
-                },
-                {
-                    "W": np.transpose((model.state_dict()['conv3.weight'].numpy()/SCALE).astype(int), (2, 3, 1, 0)).tolist(),
-                    "b": (model.state_dict()['conv3.bias'].numpy()/SCALE).round().astype(int).tolist(),
-                    "a": np.transpose(activation['conv3'].numpy().astype(int).squeeze(), (1, 2, 0)).tolist()
-                }
-            ],
+            "backbone": backbone,
             "tail": {
                 "W": (model.state_dict()['fc1.weight'].numpy()/SCALE).round().astype(int).tolist(),
                 "b": (model.state_dict()['fc1.bias'].numpy()/SCALE).round().astype(int).tolist(),

@@ -11,4 +11,4 @@ node Backbone_js/generate_witness.js Backbone_js/Backbone.wasm backbone_smoke.js
 # Clean up
 mv Backbone_js/Backbone.wasm ../out
 mv Backbone.r1cs ../out
-rm -r Backbone_js/ Backbone.wtns
+# rm -r Backbone_js/ Backbone.wtns

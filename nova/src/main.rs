@@ -3,7 +3,7 @@ use nova_scotia::{
         circuit::{CircomCircuit, R1CS},
         reader::{generate_witness_from_wasm, load_r1cs},
     },
-    create_public_params, create_recursive_circuit, CircomInput, F1, F2, G1, G2,
+    create_public_params, create_recursive_circuit, F1, F2, G1, G2,
 };
 use nova_snark::{
     traits::{circuit::TrivialTestCircuit, Group},
@@ -11,7 +11,7 @@ use nova_snark::{
 };
 use num_bigint::BigInt;
 use num_traits::Num;
-use pasta_curves::{group::ff::PrimeField, Fq};
+use pasta_curves::Fq;
 use primitive_types::U256;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -25,11 +25,12 @@ type C2 = TrivialTestCircuit<<G2 as Group>::Scalar>;
 type S1 = nova_snark::spartan_with_ipa_pc::RelaxedR1CSSNARK<G1>;
 type S2 = nova_snark::spartan_with_ipa_pc::RelaxedR1CSSNARK<G2>;
 
+const FWD_PASS_F: &str = "../models/json/PAD_inp1_two_conv_mnist.json";
+
 const MIMC3D_R1CS_F: &str = "./circom/out/MiMC3D.r1cs";
 const MIMC3D_WASM_F: &str = "./circom/out/MiMC3D.wasm";
-const BACKBONE_R1CS_F: &str = "./circom/out/dense_layer.r1cs";
-const BACKBONE_WASM_F: &str = "./circom/out/dense_layer.wasm";
-const FWD_PASS_F: &str = "../models/json/inp1_two_conv_mnist.json";
+const BACKBONE_R1CS_F: &str = "./circom/out/Backbone.r1cs";
+const BACKBONE_WASM_F: &str = "./circom/out/Backbone.wasm";
 
 #[derive(Serialize)]
 struct MiMC3DInput {
@@ -61,10 +62,11 @@ struct DenseLayer {
 
 #[derive(Debug, Deserialize)]
 struct ForwardPass {
-    x: Vec<u64>,
+    x: Vec<Vec<Vec<i64>>>,
     head: ConvLayer,
     backbone: Vec<ConvLayer>,
     tail: DenseLayer,
+    padding: usize,
     scale: f64,
     label: u64,
 }
@@ -105,7 +107,7 @@ fn setup(r1cs: &R1CS<F1>) -> PublicParams<G1, G2, C1, C2> {
 }
 
 // On vesta curve
-fn mimc3d(r1cs: &R1CS<F1>, wasm: &PathBuf, arr: &Vec<Vec<Vec<i64>>>) -> BigInt {
+fn mimc3d(r1cs: &R1CS<F1>, wasm: &PathBuf, arr: Vec<Vec<Vec<i64>>>) -> BigInt {
     let witness_gen_input = PathBuf::from("circom_input.json");
     let witness_gen_output = PathBuf::from("circom_witness.wtns");
 
@@ -137,6 +139,17 @@ fn mimc3d(r1cs: &R1CS<F1>, wasm: &PathBuf, arr: &Vec<Vec<Vec<i64>>>) -> BigInt {
     BigInt::from_str_radix(&stripped, 16).unwrap()
 }
 
+fn rm_padding(arr: &Vec<Vec<Vec<i64>>>, padding: usize) -> Vec<Vec<Vec<i64>>> {
+    let rows = arr.len() - padding * 2;
+    let cols = arr[0].len() - padding * 2;
+
+    let v = arr
+        .iter()
+        .map(|v| v[padding..padding + cols].to_vec())
+        .collect::<Vec<Vec<Vec<i64>>>>();
+    v[padding..padding + rows].to_vec()
+}
+
 /*
  * Constructs the inputs necessary for recursion. This includes 1) private
  * inputs for every step, and 2) initial public inputs for the first step of the
@@ -156,14 +169,19 @@ fn construct_inputs(
             &fwd_pass.head.a
         };
         let priv_in = HashMap::from([
-            (String::from("a"), json!(a)),
+            (String::from("a_prev"), json!(a)),
             (String::from("W"), json!(fwd_pass.backbone[i].W)),
             (String::from("b"), json!(fwd_pass.backbone[i].b)),
         ]);
         private_inputs.push(priv_in);
     }
 
-    let v_1 = mimc3d(mimc3d_r1cs, mimc3d_wasm, &fwd_pass.head.a).to_str_radix(10);
+    let v_1 = mimc3d(
+        mimc3d_r1cs,
+        mimc3d_wasm,
+        rm_padding(&fwd_pass.head.a, fwd_pass.padding),
+    )
+    .to_str_radix(10);
     let z0_primary = vec![
         Fq::from(0),
         Fq::from_raw(U256::from_dec_str(&v_1).unwrap().0),
@@ -205,6 +223,9 @@ fn recursion(
     println!("- Done ({:?})", start.elapsed());
 
     println!("- Verifying RecursiveSNARK");
+    println!("num_steps: {:?}", num_steps);
+    println!("z0 PRIMARY: {:?}", inputs.start_pub_primary);
+    println!("z0 SECONDARY: {:?}", inputs.start_pub_secondary);
     let start = Instant::now();
     let res = recursive_snark.verify(
         &pp,
@@ -255,8 +276,8 @@ fn spartan(
 
 fn main() {
     let root = current_dir().unwrap();
-    // let backbone_r1cs = load_r1cs(&root.join(BACKBONE_R1CS_F));
-    // let backbone_witness_gen = root.join(BACKBONE_WASM_F);
+    let backbone_r1cs = load_r1cs(&root.join(BACKBONE_R1CS_F));
+    let backbone_wasm = root.join(BACKBONE_WASM_F);
     let mimc3d_r1cs = load_r1cs(&root.join(MIMC3D_R1CS_F));
     let mimc3d_wasm = root.join(MIMC3D_WASM_F);
 
@@ -268,20 +289,19 @@ fn main() {
     println!("==");
 
     println!("== Creating circuit public parameters");
-    // let pp = setup(&r1cs);
+    let pp = setup(&backbone_r1cs);
     println!("==");
 
     println!("== Constructing inputs");
     let inputs = construct_inputs(&fwd_pass, num_steps, &mimc3d_r1cs, &mimc3d_wasm);
-    println!("{:?}", inputs);
     println!("==");
 
     println!("== Executing recursion using Nova");
-    // let recursive_snark = recursion(witness_gen, r1cs, &inputs, &pp, num_steps);
+    let recursive_snark = recursion(backbone_wasm, backbone_r1cs, &inputs, &pp, num_steps);
     println!("==");
 
     println!("== Producing a CompressedSNARK using Spartan w/ IPA-PC");
-    // let _compressed_snark = spartan(&pp, recursive_snark, num_steps, &inputs);
+    let _compressed_snark = spartan(&pp, recursive_snark, num_steps, &inputs);
     println!("==");
 
     println!("** Total time to completion: ({:?})", start.elapsed());

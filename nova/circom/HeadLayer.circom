@@ -2,8 +2,8 @@ pragma circom 2.1.1;
 include "./node_modules/circomlib-ml/circuits/ReLU.circom";
 include "./node_modules/circomlib-ml/circuits/circomlib/mimc.circom";
 include "./node_modules/circomlib-ml/circuits/Conv2D.circom";
-include "mimcsponge.circom";
-include "utils.circom";
+include "./utils/mimcsponge.circom";
+include "./utils/utils.circom";
 
 template HeadLayer(nRows, nCols, nChannels, nFilters, kernelSize, strides) {
     signal input in_hash;
@@ -11,8 +11,8 @@ template HeadLayer(nRows, nCols, nChannels, nFilters, kernelSize, strides) {
     var convLayerOutputRows = (nRows-kernelSize)\strides+1;
     var convLayerOutputCols = (nCols-kernelSize)\strides+1;
     var convLayerOutputDepth = nFilters;
-    var convLayerOutputNumElements = convLayerOutputRows * convLayerOutputCols * convLayerOutputDepth;
-    signal activations[convLayerOutputNumElements];
+    var scaleFactor = 10**9;
+    signal activations[convLayerOutputRows][convLayerOutputCols][convLayerOutputDepth];
     signal output out;
 
     // 1. Verify that H(in) == in_hash
@@ -24,68 +24,68 @@ template HeadLayer(nRows, nCols, nChannels, nFilters, kernelSize, strides) {
       [
         [
           [
-            110095859,
-            1968937
+            0,
+            0
           ]
         ],
         [
           [
-            163379773,
-            143442363
+            0,
+            0
           ]
         ],
         [
           [
-            -85406423,
-            -165240899
+            0,
+            0
           ]
         ]
       ],
       [
         [
           [
-            -123848811,
-            318512261
+            0,
+            0
           ]
         ],
         [
           [
-            -203423515,
-            153684407
+            0,
+            0
           ]
         ],
         [
           [
-            476588398,
-            -46351999
+            0,
+            0
           ]
         ]
       ],
       [
         [
           [
-            17474651,
-            347578406
+            0,
+            0
           ]
         ],
         [
           [
-            398471206,
-            382686049
+            0,
+            0
           ]
         ],
         [
           [
-            512695074,
-            -145270959
+            0,
+            0
           ]
         ]
       ]
     ];
     
     var b[nFilters] = [
-      528606474,
-      517328024
+      0,
+      0
     ];
 
     // 2. Generate Convolutional Network Output, Relu elements of 3D Matrix, and 
@@ -95,24 +95,25 @@ template HeadLayer(nRows, nCols, nChannels, nFilters, kernelSize, strides) {
     convLayer.weights <== W;
     convLayer.bias <== b;
 
-    component relu[convLayerOutputNumElements];
-    // Now ReLu all of the elements in the 3D Matrix output of our Conv2D Layer
-    // The ReLu'd outputs are stored in a flattened activations vector
+    component relu[convLayerOutputRows][convLayerOutputCols][convLayerOutputDepth];
+    // Now Relu all of the elements in the 3D Matrix output of our Conv2D Layer
+    // The Relu'd outputs are stored in a flattened activations vector
     for (var row = 0; row < convLayerOutputRows; row++) {
         for (var col = 0; col < convLayerOutputCols; col++) {
             for (var depth = 0; depth < convLayerOutputDepth; depth++) {
-                var indexFlattenedVector = (row * convLayerOutputCols * convLayerOutputDepth) + (col * convLayerOutputDepth) + depth;
-                relu[indexFlattenedVector] = ReLU();
-                relu[indexFlattenedVector].in <== convLayer.out[row][col][depth];
-                activations[indexFlattenedVector] <== relu[indexFlattenedVector].out;
+                relu[row][col][depth] = ReLU();
+                relu[row][col][depth].in <== convLayer.out[row][col][depth];
+                // Floor divide by the scale factor
+                activations[row][col][depth] <== relu[row][col][depth].out \ scaleFactor;
             }
         }
     }
 
-    component mimc_hash_activations = MiMCSponge(convLayerOutputNumElements, 220, 1);
-    mimc_hash_activations.ins <== activations;
-    mimc_hash_activations.k <== 0;
-    out <== mimc_hash_activations.outs[0];
+    // component mimc_hash_activations = MimcHashMatrix3D(convLayerOutputRows, convLayerOutputCols, convLayerOutputDepth);
+    // mimc_hash_activations.matrix <== activations;
+    // out <== mimc_hash_activations.hash;
+    out <== 1234;
 }
 
-component main { public [in_hash] } = HeadLayer(28, 28, 1, 2, 3, 1);
+// Dimensions are 4x4, and we add a padding of 2 
+component main { public [in_hash] } = HeadLayer(4 + 2, 4 + 2, 1, 2, 3, 1);

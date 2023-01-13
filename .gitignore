@@ -4,3 +4,5 @@ nova/circom/out/
 nova/circom/tests/*_js/
 nova/circom/tests/*.r1cs
 nova/circom/tests/*.wtns
+
+models/mnist_cnn.pt

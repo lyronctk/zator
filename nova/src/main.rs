@@ -289,12 +289,12 @@ fn main() {
     let num_steps = fwd_pass.backbone.len();
     println!("==");
 
-    println!("== Creating circuit public parameters");
-    let pp = setup(&backbone_r1cs);
-    println!("==");
-
     println!("== Constructing inputs");
     let inputs = construct_inputs(&fwd_pass, num_steps, &mimc3d_r1cs, &mimc3d_wasm);
+    println!("==");
+
+    println!("== Creating circuit public parameters");
+    let pp = setup(&backbone_r1cs);
     println!("==");
 
     println!("== Executing recursion using Nova");

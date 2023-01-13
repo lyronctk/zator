@@ -15,6 +15,7 @@ import json
 SCALE = 1e-16
 DIMS = 28
 PADDING = 1
+N_LAYERS = 11
 
 class ToInt(object):
     """Convert ndarrays in sample to Int."""
@@ -28,7 +29,7 @@ class Net(nn.Module):
         self.conv1 = nn.Conv2d(1, 2, 3, 1, padding=PADDING)
         # self.conv2 = nn.Conv2d(2, 2, 3, 1, padding=PADDING)
         # self.conv3 = nn.Conv2d(2, 2, 3, 1, padding=PADDING)
-        for i in range(2, 101):
+        for i in range(2, N_LAYERS):
             setattr(self, 'conv' + str(i), nn.Conv2d(2, 2, 3, 1, padding=PADDING))
         self.fc1 = nn.Linear(DIMS*DIMS*2, 10)
 
@@ -42,7 +43,7 @@ class Net(nn.Module):
         x = torch.floor(x)
 
         # add layers
-        for i in range(2, 101):
+        for i in range(2, N_LAYERS):
             x = getattr(self, 'conv' + str(i))(x)
             x = F.relu(x)
             x = torch.floor(x)
@@ -177,6 +178,8 @@ def main():
 
     def get_activation(name):
         def hook(model, input, output):
+            print("***")
+            print(name)
             activation[name] = output.detach()
         return hook
 
@@ -185,8 +188,8 @@ def main():
     # model.conv3.register_forward_hook(get_activation('conv3'))
 
     # register hooks for all conv layers
-    for i in range(2, 101):
-        model.state_dict()[f"conv{i}"].register_forward_hook(get_activation(f"conv{i}"))
+    for i in range(1, N_LAYERS):
+        model.__getattr__(f"conv{i}").register_forward_hook(get_activation(f"conv{i}"))
 
 
 
@@ -203,7 +206,7 @@ def main():
 
     # create backbone json
     backbone = []
-    for i in range(2, 101):
+    for i in range(2, N_LAYERS):
         backbone.append({
             "W": np.transpose((model.state_dict()[f"conv{i}.weight"].numpy()/SCALE).astype(int), (2, 3, 1, 0)).tolist(),
             "b": (model.state_dict()[f"conv{i}.bias"].numpy()/SCALE).astype(int).tolist(),

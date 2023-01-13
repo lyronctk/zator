@@ -1,7 +1,7 @@
 # Boilerplate circuit compilation for development
 # ==
 
-PTAU_FILE=powersOfTau28_hez_final_22.ptau
+PTAU_FILE=powersOfTau.ptau
 ZKEY_FILE=tail_layer.zkey
 WITNESS_FILE=tail_layer.wtns
 PROOF_FILE=tail_layer_proof.json
@@ -12,7 +12,7 @@ VERIFICATION_JSON=tail_layer_verification_key.json
 circom ../TailLayer.circom --r1cs --wasm # --prime vesta
 
 # Generate the witness, primarily as a smoke test for the circuit
-node TailLayer_js/generate_witness.js TailLayer_js/TailLayer.wasm tail_layer_smoke_test.json TailLayer.wtns
+node TailLayer_js/generate_witness.js TailLayer_js/TailLayer.wasm tail_layer_smoke_test.json $WITNESS_FILE
 
 echo "---Starting setup for proof generation---"
 # Setup plonk for proof generation
@@ -37,7 +37,8 @@ snarkjs plonk verify $VERIFICATION_JSON $PUBLIC_FILE $PROOF_FILE
 # Clean up
 mv TailLayer_js/TailLayer.wasm ../out
 mv TailLayer.r1cs ../out
-rm -r TailLayer_js/ TailLayer.wtns
-# mv TailLayer_js/TailLayer.wasm ../out
-# mv TailLayer.r1cs ../out
-# rm -r TailLayer_js/ TailLayer.wtns
+rm $VERIFICATION_JSON
+rm $ZKEY_FILE
+rm $PROOF_FILE
+rm $PUBLIC_FILE
+rm -r TailLayer_js/ $WITNESS_FILE

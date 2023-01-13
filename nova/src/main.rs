@@ -301,7 +301,7 @@ fn main() {
     println!("==");
 
     println!("== Producing a CompressedSNARK using Spartan w/ IPA-PC");
-    // let _compressed_snark = spartan(&pp, recursive_snark, num_steps, &inputs);
+    let _compressed_snark = spartan(&pp, recursive_snark, num_steps, &inputs);
     println!("==");
 
     println!("** Total time to completion: ({:?})", start.elapsed());

@@ -2,6 +2,7 @@ pragma circom 2.1.1;
 include "./node_modules/circomlib-ml/circuits/ReLU.circom";
 // include "./node_modules/circomlib-ml/circuits/circomlib/mimc.circom";
 include "./node_modules/circomlib-ml/circuits/Conv2D.circom";
+include "./utils/Division.circom";
 include "./utils/mimcsponge.circom";
 include "./utils/utils.circom";
 
@@ -42,6 +43,7 @@ template Backbone(nRows, nCols, nChannels, nFilters, kernelSize, strides, paddin
     convLayer.weights <== W;
     convLayer.bias <== b;
 
+    component divs[convLayerOutputRows][convLayerOutputCols][convLayerOutputDepth];
     component relu[convLayerOutputRows][convLayerOutputCols][convLayerOutputDepth];
     // Now poly all of the elements in the 3D Matrix output of our Conv2D Layer
     // The poly'd outputs are stored in a flattened activations vector
@@ -51,7 +53,12 @@ template Backbone(nRows, nCols, nChannels, nFilters, kernelSize, strides, paddin
                 relu[row][col][depth] = ReLU();
                 relu[row][col][depth].in <== convLayer.out[row][col][depth];
                 // Floor divide by the scale factor
-                activations[row][col][depth] <== relu[row][col][depth].out \ scaleFactor;
+                // activations[row][col][depth] <== relu[row][col][depth].out \ scaleFactor;
+
+                divs[row][col][depth] = Division(scaleFactor);
+                divs[row][col][depth].dividend <== relu[row][col][depth].out;
+                activations[row][col][depth] <== divs[row][col][depth].quotient;
+
             }
         }
     }

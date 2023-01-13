@@ -1,6 +1,6 @@
 pragma circom 2.1.1;
 
-include "./node_modules/circomlib-ml/circuits/Dense.circom";
+include "./node_modules/circomlib-ml-vesta/circuits/Dense.circom";
 include "./utils/mimcsponge.circom";
 
 template TailLayer(nRows, nCols) {

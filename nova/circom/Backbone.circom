@@ -85,52 +85,6 @@ template Backbone(nRows, nCols, nChannels, nFilters, kernelSize, strides, paddin
     component mimc_hash_activations = MimcHashMatrix3D(convLayerOutputRows, convLayerOutputCols, convLayerOutputDepth);
     mimc_hash_activations.matrix <== activations;
     step_out[1] <== mimc_hash_activations.hash;
-
-    // log("STEP OUT [0]:");
-    // log(step_out[0]);
-    // log("STEP OUT [1]:");
-    // log(step_out[1]);
-
-    // for (var j = 0; j < convLayerOutputCols; j++)
-    //     for (var k = 0; k < convLayerOutputDepth; k++)
-    //         log(activations[0][j][k]);
-
-    /*
-    [
-        [
-          [0, 0],
-          [0, 5],
-          [2, 7],
-          [0, 0],
-          [0, 0],
-          [0, 0]
-        ],
-        [
-          [0, 0],
-          [0, 6],
-          [0, 1],
-          [10, 1],
-          [2, 0],
-          [0, 0]
-        ],
-        [
-          [0, 0],
-          [0, 18],
-          [0, 0],
-          [0, 11],
-          [6, 0],
-          [0, 0]
-        ],
-        [
-          [0, 0],
-          [0, 0],
-          [0, 9],
-          [0, 0],
-          [0, 1],
-          [0, 0]
-        ]
-      ]
-    */
 }
 
-component main { public [step_in] } = Backbone(4, 4, 2, 2, 3, 1, 1);
+component main { public [step_in] } = Backbone(28, 28, 2, 2, 3, 1, 1);

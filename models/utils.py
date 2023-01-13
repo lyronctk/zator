@@ -90,7 +90,7 @@ def pad_json():
         print(relud)
 
         for idx, bone in enumerate(backbone):
-            bone_activ = np.array(bone["a"]).reshape((4, 4, 2))
+            bone_activ = np.array(bone["a"]).reshape((28, 28, 2))
             bone_activ = np.pad(bone_activ, ((1, 1), (1, 1), (0,0)), 'constant', constant_values=0)
             relud = np.maximum(0, bone_activ)
             backbone[idx]["a"] = relud.tolist()

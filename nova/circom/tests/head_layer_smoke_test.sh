@@ -12,10 +12,7 @@ VERIFICATION_JSON=head_layer_verification_key.json
 circom ../HeadLayer.circom --r1cs --wasm # --prime vesta
 
 # Generate the witness, primarily as a smoke test for the circuit
-node HeadLayer_js/generate_witness.js HeadLayer_js/HeadLayer.wasm head_layer_smoke_test.json HeadLayer.wtns
 node HeadLayer_js/generate_witness.js HeadLayer_js/HeadLayer.wasm head_layer_smoke_test.json $WITNESS_FILE
-
-exit 1
 
 echo "---Starting setup for proof generation---"
 # Setup plonk for proof generation
@@ -38,9 +35,6 @@ echo "---Verify the proof---"
 snarkjs plonk verify $VERIFICATION_JSON $PUBLIC_FILE $PROOF_FILE
 
 # Clean up
-mv HeadLayer_js/HeadLayer.wasm ../out
-mv HeadLayer.r1cs ../out
-rm -r HeadLayer_js/ HeadLayer.wtns
 # mv HeadLayer_js/HeadLayer.wasm ../out
 # mv HeadLayer.r1cs ../out
 # rm -r HeadLayer_js/ HeadLayer.wtns

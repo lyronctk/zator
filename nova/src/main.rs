@@ -30,6 +30,7 @@ const FWD_PASS_F: &str = "../models/json/PAD_inp1_two_conv_mnist.json";
 const MIMC3D_R1CS_F: &str = "./circom/out/MiMC3D.r1cs";
 const MIMC3D_WASM_F: &str = "./circom/out/MiMC3D.wasm";
 const BACKBONE_R1CS_F: &str = "./circom/out/Backbone.r1cs";
+// TODO:: PUT CPP WITNESS GEN BELOW, DONT NEED TO CHANGE ANYTHING ELSE 
 const BACKBONE_WASM_F: &str = "./circom/out/Backbone.wasm";
 
 #[derive(Serialize)]

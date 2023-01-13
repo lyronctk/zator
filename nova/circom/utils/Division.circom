@@ -2,10 +2,10 @@
 
 pragma circom 2.1.1;
 
-include "../node_modules/circomlib-ml/circuits/util.circom";
-include "../node_modules/circomlib-ml/circuits/circomlib/sign.circom";
-include "../node_modules/circomlib-ml/circuits/circomlib/comparators.circom";
-include "../node_modules/circomlib-ml/circuits/circomlib/bitify.circom";
+include "../node_modules/circomlib-ml-vesta/circuits/util.circom";
+include "../node_modules/circomlib-ml-vesta/circuits/circomlib/sign.circom";
+include "../node_modules/circomlib-ml-vesta/circuits/circomlib/comparators.circom";
+include "../node_modules/circomlib-ml-vesta/circuits/circomlib/bitify.circom";
 
 // NB: RangeProof is inclusive.
 // input: field element, whose abs is claimed to be <= than max_abs_value

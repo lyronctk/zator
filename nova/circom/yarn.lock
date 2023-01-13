@@ -2,7 +2,7 @@
 # yarn lockfile v1
 
 
-circomlib-ml@^1.4.4:
+circomlib-ml-vesta@^1.4.4:
   version "1.4.4"
-  resolved "https://registry.yarnpkg.com/circomlib-ml/-/circomlib-ml-1.4.4.tgz#a593207d193b5fcbd0ae7effdb961c4b4e0d7941"
-  integrity sha512-7EHHgtC7mR4jB0pzGulaEkZskfvbI9zWGanMsi9/b4OrBu4gNlC0A96t4B/DMCBLZWjlZkAhK4ucwrJ7NB0kjw==
+  resolved "https://registry.yarnpkg.com/circomlib-ml-vesta/-/circomlib-ml-vesta-1.4.4.tgz#6bd83f76d07a6d53dbb50e5d70681f62cb9336c1"
+  integrity sha512-ikixZtzoCyePyzFeLyaw8Rk8MAPU9n5i6sTLmm04FL4/zW51iJwb0qq9sHbtomPdTpn+K03AS9UI8UJ+y6VC4A==

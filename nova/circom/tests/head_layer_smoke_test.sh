@@ -1,7 +1,7 @@
 # Boilerplate circuit compilation for development
 # ==
 
-PTAU_FILE=powersOfTau28_hez_final_22.ptau
+PTAU_FILE=powersOfTau.ptau
 ZKEY_FILE=head_layer.zkey
 WITNESS_FILE=head_layer.wtns
 PROOF_FILE=head_layer_proof.json
@@ -35,6 +35,10 @@ echo "---Verify the proof---"
 snarkjs plonk verify $VERIFICATION_JSON $PUBLIC_FILE $PROOF_FILE
 
 # Clean up
-# mv HeadLayer_js/HeadLayer.wasm ../out
-# mv HeadLayer.r1cs ../out
-# rm -r HeadLayer_js/ HeadLayer.wtns
+mv HeadLayer_js/HeadLayer.wasm ../out
+mv HeadLayer.r1cs ../out
+rm $VERIFICATION_JSON
+rm $ZKEY_FILE
+rm $PROOF_FILE
+rm $PUBLIC_FILE
+rm -r HeadLayer_js/ $WITNESS_FILE

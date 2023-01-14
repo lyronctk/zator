@@ -32,6 +32,7 @@ const MIMC3D_WASM_F: &str = "./circom/out/MiMC3D.wasm";
 const BACKBONE_R1CS_F: &str = "./circom/out/Backbone.r1cs";
 // TODO:: PUT CPP WITNESS GEN BELOW, DONT NEED TO CHANGE ANYTHING ELSE 
 const BACKBONE_WASM_F: &str = "./circom/out/Backbone.wasm";
+const PROOF_OUT_F: &str = "./out/spartan_proof.json";
 
 #[derive(Serialize)]
 struct MiMC3DInput {
@@ -77,6 +78,16 @@ struct RecursionInputs {
     all_private: Vec<HashMap<String, Value>>,
     start_pub_primary: Vec<F1>,
     start_pub_secondary: Vec<F2>,
+}
+
+#[derive(Serialize)]
+struct StringifiedSpartanProof {
+    nifs_primary: String,
+    f_W_snark_primary: String,
+    nifs_secondary: String,
+    f_W_snark_secondary: String,
+    zn_primary: String,
+    zn_secondary: String
 }
 
 /*
@@ -250,6 +261,7 @@ fn spartan(
     recursive_snark: RecursiveSNARK<G1, G2, C1, C2>,
     num_steps: usize,
     inputs: &RecursionInputs,
+    proof_f: &str,
 ) -> CompressedSNARK<G1, G2, C1, C2, S1, S2> {
     println!("- Generating");
     let start = Instant::now();
@@ -259,7 +271,18 @@ fn spartan(
     assert!(res.is_ok());
     println!("- Done ({:?})", start.elapsed());
     let compressed_snark = res.unwrap();
+
     println!("- Proof: {:?}", compressed_snark.f_W_snark_primary);
+    let prf = StringifiedSpartanProof {
+        nifs_primary: format!("{:?}", compressed_snark.nifs_primary),
+        f_W_snark_primary: format!("{:?}", compressed_snark.f_W_snark_primary),
+        nifs_secondary: format!("{:?}", compressed_snark.nifs_secondary),
+        f_W_snark_secondary: format!("{:?}", compressed_snark.f_W_snark_secondary),
+        zn_primary: format!("{:?}", compressed_snark.zn_primary),
+        zn_secondary: format!("{:?}", compressed_snark.zn_secondary),
+    };
+    let prf_json = serde_json::to_string(&prf).unwrap();
+    fs::write(&proof_f, prf_json).unwrap();
 
     println!("- Verifying");
     let start = Instant::now();
@@ -302,7 +325,7 @@ fn main() {
     println!("==");
 
     println!("== Producing a CompressedSNARK using Spartan w/ IPA-PC");
-    let _compressed_snark = spartan(&pp, recursive_snark, num_steps, &inputs);
+    let _compressed_snark = spartan(&pp, recursive_snark, num_steps, &inputs, PROOF_OUT_F);
     println!("==");
 
     println!("** Total time to completion: ({:?})", start.elapsed());

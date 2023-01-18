@@ -5,8 +5,11 @@ include "./node_modules/circomlib-ml-vesta/circuits/Conv2D.circom";
 include "./utils/mimcsponge.circom";
 include "./utils/utils.circom";
 
+// Template for the first (head) layer of a Convnet
 template HeadLayer(nRows, nCols, nChannels, nFilters, kernelSize, strides) {
+    // Hash of the input 
     signal input in_hash;
+    // Input 
     signal input x[nRows][nCols][nChannels];
     var convLayerOutputRows = (nRows-kernelSize)\strides+1;
     var convLayerOutputCols = (nCols-kernelSize)\strides+1;
@@ -20,6 +23,7 @@ template HeadLayer(nRows, nCols, nChannels, nFilters, kernelSize, strides) {
     mimc_previous_activations.matrix <== x;
     in_hash === mimc_previous_activations.hash;
 
+    // Weights matrix
     var W[kernelSize][kernelSize][nChannels][nFilters] = [
       [
         [
@@ -83,6 +87,7 @@ template HeadLayer(nRows, nCols, nChannels, nFilters, kernelSize, strides) {
       ]
     ];
     
+    // Bias vector
     var b[nFilters] = [
       0,
       0
@@ -109,10 +114,9 @@ template HeadLayer(nRows, nCols, nChannels, nFilters, kernelSize, strides) {
         }
     }
 
-    // component mimc_hash_activations = MimcHashMatrix3D(convLayerOutputRows, convLayerOutputCols, convLayerOutputDepth);
-    // mimc_hash_activations.matrix <== activations;
-    // out <== mimc_hash_activations.hash;
-    out <== 1234;
+    component mimc_hash_activations = MimcHashMatrix3D(convLayerOutputRows, convLayerOutputCols, convLayerOutputDepth);
+    mimc_hash_activations.matrix <== activations;
+    out <== mimc_hash_activations.hash;
 }
 
 // Dimensions are 4x4, and we add a padding of 2 

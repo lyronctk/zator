@@ -11,9 +11,10 @@ template Backbone(nRows, nCols, nChannels, nFilters, kernelSize, strides, paddin
     var paddedRows = nRows + padding * 2;
     var paddedCols = nCols + padding * 2;
 
+    // [running of hash outputted by the previous layer, hash of the activations of the previous layer]
     signal input step_in[2];
-    // Input to current layer
 
+    // Activations outputted by the previous layer (note that it is padded)
     signal input a_prev[paddedRows][paddedCols][nChannels];
     // Weights for current layer
     signal input W[kernelSize][kernelSize][nChannels][nFilters];
@@ -26,10 +27,11 @@ template Backbone(nRows, nCols, nChannels, nFilters, kernelSize, strides, paddin
     signal weights_matrix_hash;
     signal bias_vector_hash;
     var scaleFactor = 10**16;
+    // [running hash for curent layer, hash of activations for current layer]
     signal output step_out[2];
 
-    // 1. Check that H(x) = v_n
-    //    v_n is H(a_{n-1}) where (a_{n - 1}) is the output of the previous Convolutional Layer (the activations) that is flattened and run through ReLu
+    // 1. Check that H(a_prev) = v_{a-1}
+    //    v_{a-1} is H(a_{n-1})
     component mimc_previous_activations = MimcHashMatrix3D(convLayerOutputRows, convLayerOutputCols, nChannels);
     for (var i = 0; i < nRows; i++)
         for (var j = 0; j < nCols; j++)
@@ -45,16 +47,14 @@ template Backbone(nRows, nCols, nChannels, nFilters, kernelSize, strides, paddin
 
     component divs[convLayerOutputRows][convLayerOutputCols][convLayerOutputDepth];
     component relu[convLayerOutputRows][convLayerOutputCols][convLayerOutputDepth];
-    // Now poly all of the elements in the 3D Matrix output of our Conv2D Layer
-    // The poly'd outputs are stored in a flattened activations vector
+    // Now Relu all of the elements in the 3D Matrix output of our Conv2D Layer
+    // The relu'd outputs are stored in a flattened activations vector
     for (var row = 0; row < convLayerOutputRows; row++) {
         for (var col = 0; col < convLayerOutputCols; col++) {
             for (var depth = 0; depth < convLayerOutputDepth; depth++) {
                 relu[row][col][depth] = ReLU();
                 relu[row][col][depth].in <== convLayer.out[row][col][depth];
                 // Floor divide by the scale factor
-                // activations[row][col][depth] <== relu[row][col][depth].out \ scaleFactor;
-
                 divs[row][col][depth] = Division(scaleFactor);
                 divs[row][col][depth].dividend <== relu[row][col][depth].out;
                 activations[row][col][depth] <== divs[row][col][depth].quotient;
@@ -87,4 +87,5 @@ template Backbone(nRows, nCols, nChannels, nFilters, kernelSize, strides, paddin
     step_out[1] <== mimc_hash_activations.hash;
 }
 
+// MNIST takes a 28 x 28 image
 component main { public [step_in] } = Backbone(28, 28, 2, 2, 3, 1, 1);

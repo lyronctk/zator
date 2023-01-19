@@ -3,7 +3,7 @@
 Prove the execution of arbitrarily deep neural networks with recursive SNARKs.
 
 ## Motivation
-There has been tremendous progress in the past year toward veriying neural network inference using SNARKs. Notable projects, such as [EZKL](https://github.com/zkonduit/ezkl) and work by [D. Kang et al](https://arxiv.org/pdf/2210.08674.pdf)), have been able to leverage properties of the Halo2 proving system to snark models as complex as MobileNetv2 with 50 layers. 
+There has been tremendous progress in the past year toward veriying neural network inference using SNARKs. Notable projects- such as [EZKL](https://github.com/zkonduit/ezkl) and work by [D. Kang et al](https://arxiv.org/pdf/2210.08674.pdf))- have been able to leverage properties of the Halo2 proving system to snark models as complex as MobileNetv2 with 50 layers. 
 
 The primary constraint preventing these efforts from expanding to even deeper models lies is the fact that the entire computation trace is fit into a single circuit. With Zator, we wanted to explore verifying one layer at a time. This is done using recursive SNARKs, a construction which enables an N-step (in our case, N-layer) repeated computation to be verified incrementally. We leverage a recent recursive proving system called [Nova](https://github.com/microsoft/Nova) that is based on a scheme that "folds" N instances of the same computation into a single instance that can be verified at the cost of a single step. We looked to utilize the remarkably light recursive overhead of folding (10k constraints per step) to SNARK a network with 512 layers, which is as deep or deeper than the majority of production AI models today. 
 

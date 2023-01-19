@@ -1,14 +1,16 @@
 # Zator
 
-Prove the execution of arbitrarily deep neural networks via recursive SNARKs.
+Prove the execution of arbitrarily deep neural networks with recursive SNARKs.
 
-## Background
-The state of Zero-knowledge Machine Learning (ZKML) has made huge advancements in the past few months with the advent of novel proving systems. Prior to these advancements, models were embedded into a single circuit, making it difficult to SNARK large models as the size of the circuit would grow too large. Leveraging new recursive SNARK proving systems such as [Microsoft's Nova](https://github.com/microsoft/Nova), we are able to SNARK neural nets with an arbitrary number of layers. 
+## Motivation
+There has been tremendous progress in the past year toward veriying neural network inference using SNARKs. Notable projects, such as [EZKL](https://github.com/zkonduit/ezkl) and work by [D. Kang et al](https://arxiv.org/pdf/2210.08674.pdf)), have been able to leverage properties of the Halo2 proving system to snark models as complex as MobileNetv2 with 50 layers. 
+
+The primary constraint preventing these efforts from expanding to even deeper models lies is the fact that the entire computation trace is fit into a single circuit. With Zator, we wanted to explore verifying one layer at a time. This is done using recursive SNARKs, a construction which enables an N-step (in our case, N-layer) repeated computation to be verified incrementally. We leverage a recent recursive proving system called [Nova](https://github.com/microsoft/Nova) that is based on a scheme that "folds" N instances of the same computation into a single instance that can be verified at the cost of a single step. We looked to utilize the remarkably light recursive overhead of folding (10k constraints per step) to SNARK a network with 512 layers, which is as deep or deeper than the majority of production AI models today. 
+
+## Circuit Design
 
 ![Untitled-2023-01-10-1700](https://user-images.githubusercontent.com/97858468/212182755-d0ceca49-71f3-4ec8-b627-46da56fd7261.svg)
 
-
-## Circuit Design
 For an L-layer CNN. Bulk of the encoding done by the Backbone, where layers are verified with recursive SNARKs using Nova. Head & Tail layers are verified with single circuits that have model parameters directly built in. 
 
 ### **Head Circuit** - `[layer 1]`

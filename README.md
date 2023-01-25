@@ -84,7 +84,9 @@ For an L-layer CNN. Bulk of the encoding done by the Backbone, where layers are 
 - proper way to do quantization is fixed point arithmetic, chose a simpler scheme 
 
 ## Improvements
-Operations in circuits are performed modulo a [Finite Field](https://en.wikipedia.org/wiki/Finite_field) `p` and thus are restricted to the integers in the range [0, `p - 1`]. To maintain precision throughout execution, we multiply our inputs by a scale factor, and divide outputs by the scale factor. Since there are no floating point numbers in a finite field, we floor divide the outputs in both our circuits and the actual execution of our model. This causes a loss in model accuracy, and there may be clever ways to mitigate the effects of this. Additionally, while leveraging recursive SNARKs enables us to prove inference for large models, there are limitations on what is currently possible. Namely, the intermediary layers of the neural net that are recursively proved must be homogeneous in order for current recursive SNARK implementations to work correctly. 
+- quantizing with custom gates 
+- quantization error 
+- heterogeneous layers 
 
 ## Disclaimer & Credits
 This project was built out of interest and has not been thoroughly audited or battle-tested.

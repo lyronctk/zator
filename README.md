@@ -1,6 +1,8 @@
 # Zator
 
-Proving the execution of arbitrarily deep neural networks with recursive SNARKs.
+Proving the execution of arbitrarily deep neural networks with recursive SNARKs. 
+
+**ETA for fleshing out README: Feb 6**
 
 ## Motivation
 With the increasing use of deep learning in important decision-making processes, such as healthcare and finance, it is crucial that these models can be verified and trusted. In this project, we explored using zero knowledge succinct non-interactive arguments of knowledge (zk-SNARKs) to provide verfication on the inference for an arbitrarily deep neural network. Specifically, we trained a 512 layer MNIST model for digit classification and verified the inference execution trace using recruse SNARKs. 

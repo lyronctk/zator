@@ -1,6 +1,8 @@
 # Zator
 
-Proving the execution of arbitrarily deep neural networks with recursive SNARKs.
+Proving the execution of arbitrarily deep neural networks with recursive SNARKs. 
+
+**ETA for fleshing out README: Feb 6**
 
 ## Motivation
 There has been tremendous progress in the past year toward verifying neural network inference using SNARKs. Along this line of research, notable projects such as [EZKL](https://github.com/zkonduit/ezkl) and work by [D. Kang et al](https://arxiv.org/pdf/2210.08674.pdf) have been able to leverage properties of the Halo2 proving system to snark models as complex as MobileNetv2 with 50 layers. 

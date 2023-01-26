@@ -5,7 +5,7 @@ Proving the execution of arbitrarily deep neural networks with recursive SNARKs.
 **ETA for fleshing out README: Feb 6**
 
 ## Motivation
-With the increasing use of deep learning in important decision-making processes, such as healthcare and finance, it is crucial that these models can be verified and trusted. In this project, we explored using zero knowledge succinct non-interactive arguments of knowledge (zk-SNARKs) to provide verfication on the inference for an arbitrarily deep neural network. Specifically, we trained a 512 layer MNIST model for digit classification and verified the inference execution trace using recruse SNARKs. 
+[will add model-as-a-service blurb here]. In this project, we explored using zero knowledge succinct non-interactive arguments of knowledge (zk-SNARKs) to verify the inference of an arbitrarily deep neural network.
 
 There has been tremendous progress in the past year toward verifying neural network inference using SNARKs. Along this line of research, notable projects such as [EZKL](https://github.com/zkonduit/ezkl) and work by [D. Kang et al](https://arxiv.org/pdf/2210.08674.pdf) have been able to leverage properties of the Halo2 proving system to snark models as complex as MobileNetv2 with 50 layers. 
 

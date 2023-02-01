@@ -5,7 +5,9 @@ Proving the execution of arbitrarily deep neural networks with recursive SNARKs.
 **ETA for fleshing out README: Feb 6**
 
 ## Motivation
-[will add model-as-a-service blurb here]. In this project, we explored using zero knowledge succinct non-interactive arguments of knowledge (zk-SNARKs) to verify the inference of an arbitrarily deep neural network.
+Our project is part of the broader ZKML field. With the rise Machine Learning as a Service (MLaaS) providers such as [Hugging Face](https://huggingface.co/), verified inference has become more important. Zero Knowledge proofs allow us to verify the inference of a model, without the provider having to reveal information about the model.
+
+In this project, we explored using zero knowledge succinct non-interactive arguments of knowledge (zk-SNARKs) to verify the inference of an arbitrarily deep neural network.
 
 There has been tremendous progress in the past year toward verifying neural network inference using SNARKs. Along this line of research, notable projects such as [EZKL](https://github.com/zkonduit/ezkl) and work by [D. Kang et al](https://arxiv.org/pdf/2210.08674.pdf) have been able to leverage properties of the Halo2 proving system to snark models as complex as MobileNetv2 with 50 layers. 
 

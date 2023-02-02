@@ -16,11 +16,10 @@ use primitive_types::U256;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::{
-    collections::HashMap, env::current_dir, fs, fs::File, io::BufReader, path::PathBuf,
-    time::Instant,
+    collections::HashMap, env::current_dir, fs, fs::File, path::PathBuf,
+    time::{Duration, Instant},
+    io::{BufReader, Write}, 
 };
-
-mod bench;
 
 type C1 = CircomCircuit<<G1 as Group>::Scalar>;
 type C2 = TrivialTestCircuit<<G2 as Group>::Scalar>;
@@ -223,7 +222,7 @@ fn recursion(
     inputs: &RecursionInputs,
     pp: &PublicParams<G1, G2, C1, C2>,
     num_steps: usize,
-) -> RecursiveSNARK<G1, G2, C1, C2> {
+) -> (RecursiveSNARK<G1, G2, C1, C2>, Duration, Duration) {
     println!("- Creating RecursiveSNARK");
     let start = Instant::now();
     let recursive_snark = create_recursive_circuit(
@@ -234,6 +233,7 @@ fn recursion(
         &pp,
     )
     .unwrap();
+    let nova_snark_proving_time = start.elapsed();
     println!("- Done ({:?})", start.elapsed());
 
     println!("- Verifying RecursiveSNARK");
@@ -247,11 +247,12 @@ fn recursion(
         inputs.start_pub_primary.clone(),
         inputs.start_pub_secondary.clone(),
     );
+    let nova_snark_verifying_time = start.elapsed();
     assert!(res.is_ok());
     println!("- Output of final step: {:?}", res.unwrap().0);
     println!("- Done ({:?})", start.elapsed());
 
-    recursive_snark
+    (recursive_snark, nova_snark_proving_time, nova_snark_verifying_time)
 }
 
 /*
@@ -264,13 +265,14 @@ fn spartan(
     num_steps: usize,
     inputs: &RecursionInputs,
     proof_f: &str,
-) -> CompressedSNARK<G1, G2, C1, C2, S1, S2> {
+) -> (CompressedSNARK<G1, G2, C1, C2, S1, S2>, Duration, Duration) {
     println!("- Generating");
     let start = Instant::now();
     type S1 = nova_snark::spartan_with_ipa_pc::RelaxedR1CSSNARK<G1>;
     type S2 = nova_snark::spartan_with_ipa_pc::RelaxedR1CSSNARK<G2>;
     let res = CompressedSNARK::<_, _, _, _, S1, S2>::prove(&pp, &recursive_snark);
     assert!(res.is_ok());
+    let spartan_proving_time = start.elapsed();
     println!("- Done ({:?})", start.elapsed());
     let compressed_snark = res.unwrap();
 
@@ -295,40 +297,55 @@ fn spartan(
         inputs.start_pub_secondary.clone(),
     );
     assert!(res.is_ok());
+    let spartan_verifying_time = start.elapsed();
     println!("- Done ({:?})", start.elapsed());
 
-    compressed_snark
+    (compressed_snark, spartan_proving_time, spartan_verifying_time)
 }
 
 fn main() {
-    let root = current_dir().unwrap();
-    let backbone_r1cs = load_r1cs(&root.join(BACKBONE_R1CS_F));
-    let backbone_wasm = root.join(BACKBONE_WASM_F);
-    let mimc3d_r1cs = load_r1cs(&root.join(MIMC3D_R1CS_F));
-    let mimc3d_wasm = root.join(MIMC3D_WASM_F);
+    // Create a benchmark file
+    let mut file = std::fs::File::create("../out/benchmark.csv").unwrap();
+    file.write_all(b"num_layers,prover_time,verifier_time").unwrap();
+    // This is the number of backbone layers, since we have a head & tail layer too, the 
+    // total number of layers will be these values + 2
+    // let arr_num_layers = [510, 254, 126, 63, 30, 14, 2];
+    let arr_num_layers = [510];
+    for num_layers in arr_num_layers {
+        let root = current_dir().unwrap();
+        let backbone_r1cs = load_r1cs(&root.join(BACKBONE_R1CS_F));
+        let backbone_wasm = root.join(BACKBONE_WASM_F);
+        let mimc3d_r1cs = load_r1cs(&root.join(MIMC3D_R1CS_F));
+        let mimc3d_wasm = root.join(MIMC3D_WASM_F);
+    
+        let start = Instant::now();
+    
+        println!("== Loading forward pass");
+        let fwd_pass = read_fwd_pass(FWD_PASS_F);
+        let num_steps = fwd_pass.backbone.len();
+        println!("==");
+    
+        println!("== Constructing inputs");
+        let inputs = construct_inputs(&fwd_pass, num_steps, &mimc3d_r1cs, &mimc3d_wasm);
+        println!("==");
+    
+        println!("== Creating circuit public parameters");
+        let pp = setup(&backbone_r1cs);
+        println!("==");
+    
+        println!("== Executing recursion using Nova");
+        let (recursive_snark, nova_snark_proving_time, nova_snark_verifying_time) = recursion(backbone_wasm, backbone_r1cs, &inputs, &pp, num_steps);
+        println!("==");
+    
+        println!("== Producing a CompressedSNARK using Spartan w/ IPA-PC");
+        let (_compressed_snark, spartan_proving_time, spartan_verifying_time) = spartan(&pp, recursive_snark, num_steps, &inputs, PROOF_OUT_F);
+        println!("==");
+    
+        println!("** Total time to completion: ({:?})", start.elapsed());
 
-    let start = Instant::now();
-
-    println!("== Loading forward pass");
-    let fwd_pass = read_fwd_pass(FWD_PASS_F);
-    let num_steps = fwd_pass.backbone.len();
-    println!("==");
-
-    println!("== Constructing inputs");
-    let inputs = construct_inputs(&fwd_pass, num_steps, &mimc3d_r1cs, &mimc3d_wasm);
-    println!("==");
-
-    println!("== Creating circuit public parameters");
-    let pp = setup(&backbone_r1cs);
-    println!("==");
-
-    println!("== Executing recursion using Nova");
-    let recursive_snark = recursion(backbone_wasm, backbone_r1cs, &inputs, &pp, num_steps);
-    println!("==");
-
-    println!("== Producing a CompressedSNARK using Spartan w/ IPA-PC");
-    let _compressed_snark = spartan(&pp, recursive_snark, num_steps, &inputs, PROOF_OUT_F);
-    println!("==");
-
-    println!("** Total time to completion: ({:?})", start.elapsed());
+        let total_prover_time = nova_snark_proving_time + spartan_proving_time;
+        let total_verifying_time = nova_snark_verifying_time + spartan_verifying_time;
+        // Write the results to the benchmark file
+        file.write_all(format!("{},{:?},{:?}\n", num_layers, total_prover_time, total_verifying_time).as_bytes()).unwrap();
+    }
 }

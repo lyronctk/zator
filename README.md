@@ -4,23 +4,6 @@ There has been tremendous progress in the past year toward verifying neural netw
 
 The primary constraint preventing these efforts from expanding to even deeper models is the fact that they attempt to fit the entire computation trace into a single circuit. With [Zator](https://github.com/lyronctk/zator), we wanted to explore verifying one layer at a time using recursive SNARKs, a class of SNARKs that enables an N-step (in our case, N-layer) repeated computation to be verified incrementally. We leverage a recent construction called [Nova](https://github.com/microsoft/Nova) that uses a folding scheme to reduce N instances of repeated computation into a single instance that can be verified at the cost of a single step. We looked to utilize the remarkably light recursive overhead of folding (10k constraints per step) to snark a network with 512 layers, which is as deep or deeper than the majority of production AI models today.
 
-## The what and why of ZKML
-The application of SNARKs to prove the faithful execution of machine learning models has shown promise in a number of use cases, both in crypto-related and traditional ecosystems. ZKML applications for crypto include immersive games populated by [on-chain AI agents](https://medium.com/@ModulusLabs/chapter-4-5-trustless-ai-for-living-breathing-games-cc9f24080e30), [identity solutions](https://www.youtube.com/watch?v=7rxNN4mcOgI&ab_channel=Scroll) with more holistic views of the humans behind the field elements, and DeFi protocols that [adjust market parameters](https://medium.com/@ModulusLabs/chapter-4-blockchains-that-self-improve-e9716c041f36) based on battle tested financial models. 
-
-One case in the traditional world that we've been particularly excited to think about is how snarking ML models could scale machine learning as a service (MLaaS). Consider how MLaaS operates today, where there are a few trusted providers such as [Hugging Face](https://huggingface.co/) that handle training and deploying models for their clients. Businesses are already beginning to use these hosting solutions for critical ML infrastructure. Take a bank for example. It may use Hugging Face to parse an image of a direct deposit check to find the recipient account. There is a trust assumption here where users believe that Hugging Face won't maliciously return a different party's routing number. The assumption is passable since HF has built rapport with its users and can quickly be exposed for misbehaving. 
-
-![](https://i.imgur.com/Vu48ieI.gif)
-
-This, however, restricts the hosting of the MLaaS future to a small set of trusted parties. We believe that a better alternative is to have an open marketplace where anyone with the hardware and ML capabilities may provide training and hosting services for those who want AI-powered tools. This alternative can be made possible at scale when the safety requirements currently met by rapport and accountability can be fulfilled by the cryptographic guarantees of verifying ZKPs client-side.
-
-
-## Why snark a 512-layer network now?
-Recursive SNARKs are particularly useful for verifying complex computations with repeated structure. Neural networks are great examples of such computation- a strong motivator for our choice of model. Up until now, however, the overhead of recursion has made the layer-wise verification of a forward pass infeasible. 
-
-The recent release of [Nova](https://github.com/microsoft/Nova) has significantly reduced the recursive overhead of incrementally verifiable computation (IVC). How? Unlike full-recursion used in [constructions for Groth16](https://github.com/nalinbhardwaj/Nova-Scotia) or partial-recursion used in constructions like [Halo2](https://zcash.github.io/halo2/background/recursion.html), Nova's step circuit doesn't verify SNARKs. Instead, steps only involve taking random linear combinations of witnesses, the proper execution of which takes much fewer constraints to verify than SNARKs. 
-
-Additionally, Nova makes minimal cryptographic assumptions. It only requires that discrete-log holds, which is favorable over other popular methods for IVC such as STARKs that depend on collision-resistant hashes. These facts, paired with the development of dev-focused middleware such as [Nova Scotia](https://github.com/nalinbhardwaj/Nova-Scotia), has put recursive zk applications in range for practical development. 
-
 ## Snarking an arbitrary depth neural network
 ![](https://i.imgur.com/Hm0Yozf.png)
 
@@ -60,16 +43,6 @@ Negative numbers were handled by splitting the field. With all operations taken 
 * [TODO]: table with layers & proving time
 * [TODO]: disclaimer that each layer is small, POC, many optimizations carried out in similar projects eg. https://arxiv.org/pdf/2210.08674.pdf
     * in particular, ideally have above table for ImageNet as well
-
-## Challenges and learnings 
-
-1. Commitments to our weights and activations made up >50% of our circuit constraints. Using [GKR could reduce these costs to 3](https://ethresear.ch/t/using-gkr-inside-a-snark-to-reduce-the-cost-of-hash-verification-down-to-3-constraints/7550) constraints per element instead of 600. 
-1. Folding is quite efficient (about ~45 seconds/layer), proof generation requires generating public parameters for every run. For our circuit with 6M constraints, this take upwards of 2 hours. Serializing the proving parameters to use between runs would help with iteration. We're looking to do this and contribute. *EDIT: pp generation was just parallelized in [this](https://github.com/microsoft/Nova/pull/129/files) PR. Not as much of a concern anymore*
-1. Vesta support wasn't available in many of the circom libraries we used. We forked them to add this. An example is [Dr. Cathie's library of ML circuits](https://github.com/socathie/circomlib-ml), and [our fork](https://github.com/verumlotus/circomlib-ml-vesta) supporting Vesta
-1. The lack of custom gates with R1CS meant that our non-linearities and divisions were constraint-heavy.
-1. Serializing proofs weren't supported in the current Nova repo, so we made modifications on our fork for saving and displaying purposes. 
-
-[^2]: This is an active area of research. See [here](https://arxiv.org/abs/1712.05877), [here](https://www.tensorflow.org/model_optimization/guide/quantization/training), and [here](https://developer.nvidia.com/blog/improving-int8-accuracy-using-quantization-aware-training-and-tao-toolkit/) for some examples.
 
 ## Acknowledgements
 * [Nalin](https://nibnalin.me/) for writing Nova-Scotia and guiding us throughout the project. He's a wizard.

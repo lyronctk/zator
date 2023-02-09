@@ -33,7 +33,7 @@ Our network consisted of only convolution layers for the backbone. Why only conv
 1. Homogenous architectures (e.g. fully convolutional, fully linear) lend themselves to SNARK recursion, as mentioned earlier. 
 2. Linear layers have many, many more weights than a convolutional layer. More weights to hash = more constraints = large proving time. For example, a dense layer for a 28x28 MNIST image has a [784 x 784] weight matrix, which requires ~350M constraints to hash when using 220 rotations on MiMC. 
 
-![](https://i.imgur.com/T9H1T1Q.png)
+<img src="https://i.imgur.com/T9H1T1Q.png" width="200" />
 
 Our model is trained on [MNIST](https://en.wikipedia.org/wiki/MNIST_database). To represent float values as field elements, we quantized[^2] our weights and activations during training using scale factors and floor divisions. **Note that the quantization error this introduced is a significant limitation of the network we snarked**. Performance was not a main concern of ours since neural net compilation for circuits is solved by other projects such as [EZKL](https://github.com/zkonduit/ezkl). 
 

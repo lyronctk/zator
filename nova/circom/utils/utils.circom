@@ -2,7 +2,8 @@ pragma circom 2.1.1;
 
 include "mimcsponge.circom";
 
-// Template to mimc hash a matrix
+// MiMC hash a 3D matrix, with 91 iterations for MiMC
+// Elements are unrolled into a single flattened vector
 template MimcHashMatrix3D(rows, cols, depth) {
     signal input matrix[rows][cols][depth];
     signal output hash;
@@ -22,6 +23,8 @@ template MimcHashMatrix3D(rows, cols, depth) {
     hash <== mimc.outs[0];
 }
 
+// MiMC hash a 4D matrix, with 91 iterations for MiMC
+// Elements are unrolled into a single flattened vector
 template MimcHashMatrix4D(rows, cols, depth, dim4length) {
     signal input matrix[rows][cols][depth][dim4length];
     signal output hash;

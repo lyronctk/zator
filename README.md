@@ -1,88 +1,51 @@
-# Zator
+# Zator: Verified inference of a 512-layer neural network using recursive SNARKs 🐊
 
-Prove the execution of arbitrarily deep neural networks via recursive SNARKs.
+There has been tremendous progress in the past year toward verifying neural network inference using SNARKs. Along this line of research, notable projects such as [EZKL](https://github.com/zkonduit/ezkl) and work by [D. Kang et al](https://arxiv.org/pdf/2210.08674.pdf) have been able to snark models as complex as a 50-layer MobileNetv2 on the Halo2 proving stack. 
 
-## Background
-The state of Zero-knowledge Machine Learning (ZKML) has made huge advancements in the past few months with the advent of novel proving systems. Prior to these advancements, models were embedded into a single circuit, making it difficult to SNARK large models as the size of the circuit would grow too large. Leveraging new recursive SNARK proving systems such as [Microsoft's Nova](https://github.com/microsoft/Nova), we are able to SNARK neural nets with an arbitrary number of layers. 
+The primary constraint preventing these efforts from expanding to even deeper models is the fact that they attempt to fit the entire computation trace into a single circuit. With [Zator](https://github.com/lyronctk/zator), we wanted to explore verifying one layer at a time using recursive SNARKs, a class of SNARKs that enables an N-step (in our case, N-layer) repeated computation to be verified incrementally. We leverage a recent construction called [Nova](https://github.com/microsoft/Nova) that uses a folding scheme to reduce N instances of repeated computation into a single instance that can be verified at the cost of a single step. We looked to utilize the remarkably light recursive overhead of folding (10k constraints per step) to snark a network with 512 layers, which is as deep or deeper than the majority of production AI models today.
 
-![Untitled-2023-01-10-1700](https://user-images.githubusercontent.com/97858468/212182755-d0ceca49-71f3-4ec8-b627-46da56fd7261.svg)
+## Snarking an arbitrary depth neural network
+![](https://i.imgur.com/Hm0Yozf.png)
 
+We spent the last week hacking on a framework for verifying the computation trace for an arbitrary-depth neural network. Our final design composes the Nova and [Spartan](https://eprint.iacr.org/2019/550) proving systems. As we mentioned, Nova employs a folding scheme that instantiates a single relaxed R1CS instance at the beginning of the computation and folding it N times. Folding- the random linear combination- is a fast operation primarily made up of MSMs (rather than expensive FFTs) that results in a single instance that, when satisfied, proves the execution of all N steps. Upshot: expensive SNARK machinery only needs to be invoked to prove this *single* instance. This happens when we feed Nova's folded instance into Spartan to create a succinct proof.
 
-## Circuit Design
-For an L-layer CNN. Bulk of the encoding done by the Backbone, where layers are verified with recursive SNARKs using Nova. Head & Tail layers are verified with single circuits that have model parameters directly built in. 
+The recursive structure for the network exists in the homogenous backbone. Head and tail layers are are proved separately since they cannot be parameterized in the same way as backbone layers (i.e. the head needs to project the input image into the space we work in and the tail needs to produce output probabilities).
 
-### **Head Circuit** - `[layer 1]`
-#### Public Inputs
-1. $v_0 = H(a_0)$: Hash of input image 
+## Head, backbone, and tail circuit design 
 
-#### Public Outputs
-1. $v_1 = H(a_1)$: Hash of the activations produced by evaluating current layer
+We split the network into three parts: a head, backbone, and a tail.
 
-#### Private Inputs
-1. $a_0$: Input image `[imgHeight x imgWidth x nChannels]`
+We denote the first layer of our neural net to be the head layer. The head accepts a 28x28 image from the MNIST database and outputs activations. The corresponding head layer circuit accepts the input image as a private signal, along with the weights matrix and bias vector as additional private signals. The head layer circuit outputs a hash of the resulting activations, denoted in our diagram by $v_1$. 
 
-#### Logic
-1. Check that $H(a_0) = v_0$
-1. Convolve filters stored in circuit ($W_1$ / $b_1$) over $a_0$ to produce $a_1$
-1. Compute $v_1 = H(a_1)$
+Intermediary layers of our neural net have a corresponding backbone circuit that proves the execution of that specific layer. It ingests the activations of the previous layer ($a_{n-1}$), a weight matrix ($W_n$), and a bias vector ($b_n$) as private signals. Two steps are taken in order to prove correct execution of the layer. First, the circuit accepts the hash of the previous activations (i.e $v_{n-1}$) as a public signal. It hashes the passed in activations, and verifies the two values match (i.e it verifies that $hash(a_{n-1}) == v_{n-1}$). Secondly, a "running hash" denoted $p_n$ is a public signal to the circuit. This running hash is defined as $p_n = H(p_{n-1} || H(W_n) || H(b_n))$ and creates a running chain of commitments to weights and bias inputs. This ensures that the proof from the final layer can be tied to a specific model. As public outputs, the circuit produces $p_n$ and $v_n$. 
 
-### **Backbone Circuit** - `[layer 2, L)`
-#### Public Inputs
-1. $p_{n - 1} = H(H(H(W_2 || b_2) || W_3 || b_3) ... || W_{n - 1} || b_{n - 1}))$: Accumulated parameter hash
-1. $v_{n - 1} = H(a_{n - 1})$: Hash of the activations (output) of the previous layer
+The final layer in our neural network (the tail layer) corresponds to our tail circuit. Note that $L$ denotes the final layer number (512 in our case). The tail accepts as public input $v_{L-1}$ (the hash of the activations of the previous layer), along with private inputs $W_L$, $b_L$, and $a_{L-1}$. Similar to our backbone circuits, it hashes the passed in activations, and verifies that the two values match (i.e checks $hash(a_{L-1}) == v_{L-1}$). As an output, it produces $v_L$, a hash of the activations produced.
 
-#### Public Outputs
-1. $p_n = H(p_n || H(W_n) || H(b_n))$: Updated running parameter hash 
-1. $v_n = H(a_n)$: Hash of the activations produced by evaluating current layer
+In the end, we have 3 total proofs: 1 for the head layer, 1 for all the backbone layers, and 1 for the final tail layer. A verifier would check the validity of all 3 proofs and trace through their public outputs to ensure that all 3 proofs were part of the same execution trace. Example proofs: [head](https://gist.github.com/varunshenoy/945fe6231b9a077160a0ae2360b854ab#file-head_layer_proof-json), backbone, [tail](https://gist.github.com/varunshenoy/945fe6231b9a077160a0ae2360b854ab#file-tail_layer_proof-json). 
 
-#### Private Inputs
-1. $W_n$: Filters for convolution `[kernelSize x kernelSize x nChannels x nFilters]`
-1. $b_n$: Bias vector `[nFilters]`
-1. $a_{n-1}$: Input volume `[imgHeight x imgWidth x nChannels]`
+Our three-part design is motivated by Nova's requirement for homogenous computations during folding. In the short term, it is possible to support all types of layers in a single step circuit (single proof) via multiplexing. This is where we do the computations for all layer types every time and use a signal to determine which output activations to pass on. Multiplexing-based approaches, however, lead to bloated and redundant circuits. [SuperNova](https://eprint.iacr.org/2022/1758), the successor to Nova, is the long-term solution for heterogeneous layers.[^1]
 
-#### Logic
-1. Check that $H(a_{n-1}) = v_{n-1}$
-1. Convolve $W_n$ / $b_n$ over $a_{n-1}$ to produce $a_n$
-1. Compute $v_n = H(a_n)$
-1. Update running parameter hash to $p_n$
+[^1]: SuperNova's implementation is still currently under development. 
 
-### **Tail Circuit** - `layer L`
-#### Public Inputs
-1. $v_{L - 1} = H(a_{L - 1})$: Hash of the activations (output) of last backbone layer 
+## A snark-friendly neural network 
+Our network consisted of only convolution layers for the backbone. Why only convolutions? 
 
-#### Public Outputs
-1. $v_L = H(a_L)$: Hash of the activations produced by evaluating current layer
+1. Homogenous architectures (e.g. fully convolutional, fully linear) lend themselves to SNARK recursion, as mentioned earlier. 
+2. Linear layers have many, many more weights than a convolutional layer. More weights to hash = more constraints = large proving time. For example, a dense layer for a 28x28 MNIST image has a [784 x 784] weight matrix, which requires ~350M constraints to hash when using 220 rotations on MiMC. 
 
-#### Private Inputs
-1. $W_L$: Matrix transformation `[(imgHeight * imgWidth) x nClasses]`
-1. $b_n$: Bias vector `[nClasses]`
-1. $x_n$: Input volume `[imgHeight x imgWidth x nFilters]`
+![](https://i.imgur.com/T9H1T1Q.png)
 
-#### Logic
-1. Check that $H(a_{L-1}) = v_{L-1}$
-1. Convolve $W_L$ / $b_L$ over $a_{L-1}$ to produce $a_L$
-1. Compute $v_L = H(a_L)$
+Our model is trained on [MNIST](https://en.wikipedia.org/wiki/MNIST_database). To represent float values as field elements, we quantized[^2] our weights and activations during training using scale factors and floor divisions. **Note that the quantization error this introduced is a significant limitation of the network we snarked**. Performance was not a main concern of ours since neural net compilation for circuits is solved by other projects such as [EZKL](https://github.com/zkonduit/ezkl). 
 
-## Demo #1 Notes
-### why (shivam)
-- why zkml?
-- snarked models today: entire model in one circuit, need a massive AWS instance to generate proof for mobilenets 
-- apply recursive snarks to have infinite-depth models
+Negative numbers were handled by splitting the field. With all operations taken over a prime $p$, all values less than $floor(p/2)$ were treated as positive, and all values above this were treated as negative. Negative numbers with this setup wrap around to become large numbers in the field (e.g -1 maps to $p - 1$).
 
-### how (lyron)
-- use nova for recursion, diff approach than usual, instead of generating snark proof at each step, folding, so cost is equal to proving a single R1CS instance
-- nova needs identical structure for each step, motivated gator design
-- head / backbone / tail 
-- proof: "we have a model that hashes to X that, when fed an input that hashes to Y, outputs Z"
+## Benchmarks 
+* [TODO]: table with layers & proving time
+* [TODO]: disclaimer that each layer is small, POC, many optimizations carried out in similar projects eg. https://arxiv.org/pdf/2210.08674.pdf
+    * in particular, ideally have above table for ImageNet as well
 
-### status / roadblocks (varun)
-- private model / private input setting, then can convert into other settings using commit-reveal
-- circuits mostly written, recursive structure done
-- making commitemnts to model / data, tried dense networks, why we're doing convolutional now, chained parameter hash
-- proper way to do quantization is fixed point arithmetic, chose a simpler scheme 
-
-## Improvements
-Operations in circuits are performed modulo a [Finite Field](https://en.wikipedia.org/wiki/Finite_field) `p` and thus are restricted to the integers in the range [0, `p - 1`]. To maintain precision throughout execution, we multiply our inputs by a scale factor, and divide outputs by the scale factor. Since there are no floating point numbers in a finite field, we floor divide the outputs in both our circuits and the actual execution of our model. This causes a loss in model accuracy, and there may be clever ways to mitigate the effects of this. Additionally, while leveraging recursive SNARKs enables us to prove inference for large models, there are limitations on what is currently possible. Namely, the intermediary layers of the neural net that are recursively proved must be homogeneous in order for current recursive SNARK implementations to work correctly. 
-
-## Disclaimer & Credits
-This project was built out of interest and has not been thoroughly audited or battle-tested.
+## Acknowledgements
+* [Nalin](https://nibnalin.me/) for writing Nova-Scotia and guiding us throughout the project. He's a wizard.
+* [Hack Lodge](https://hacklodge.org/) for the mentorship, friends, & support.
+* [Srinath](http://srinathsetty.net/) for his work on Nova.
+* [Dr. Cathie](https://twitter.com/drCathieSo_eth) for her helpful circuit library for common NN operations.

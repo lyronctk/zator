@@ -3,8 +3,11 @@ pragma circom 2.1.1;
 include "./node_modules/circomlib-ml-vesta/circuits/Dense.circom";
 include "./utils/mimcsponge.circom";
 
+// Template for the final (tail) layer of a Convnet
 template TailLayer(nRows, nCols) {
+    // Hash of the activations of the previous layer
     signal input prevHash;
+    // Flattened input
     signal input in[nRows];
 
     var activations[nCols] = [-2668063402, -5067151069, -2971550703, -687616050, -2723362445, -1798599481, -5607901096, -1523757457, -3222915410, -2834131240];

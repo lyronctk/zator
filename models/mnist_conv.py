@@ -12,11 +12,19 @@ import matplotlib.pyplot as plt
 
 import json
 
+DEBUG = True
+
 SCALE = 1e-16
-DIMS = 28
 PADDING = 1
-N_LAYERS = 510
 EPOCHS = 10
+DIMS = 28
+N_BACKBONE_LAYERS = 510
+if DEBUG:
+    EPOCHS = 1
+    DIMS = 4
+    N_BACKBONE_LAYERS = 2
+OUT_F = f"json/trace_dim{DIMS}_nlayers{N_BACKBONE_LAYERS}.json"
+
 
 class ToInt(object):
     """Convert ndarrays in sample to Int."""
@@ -24,14 +32,14 @@ class ToInt(object):
     def __call__(self, sample):
         return sample * 255
 
+
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
         self.conv1 = nn.Conv2d(1, 2, 3, 1, padding=PADDING)
-        # self.conv2 = nn.Conv2d(2, 2, 3, 1, padding=PADDING)
-        # self.conv3 = nn.Conv2d(2, 2, 3, 1, padding=PADDING)
-        for i in range(2, N_LAYERS):
-            setattr(self, 'conv' + str(i), nn.Conv2d(2, 2, 3, 1, padding=PADDING))
+        for i in range(2, N_BACKBONE_LAYERS):
+            setattr(self, 'conv' + str(i),
+                    nn.Conv2d(2, 2, 3, 1, padding=PADDING))
         self.fc1 = nn.Linear(DIMS*DIMS*2, 10)
 
     def forward(self, x):
@@ -40,18 +48,17 @@ class Net(nn.Module):
     def presoftmax(self, x):
         # first conv will not be layered...
         x = self.conv1(x)
-        x = F.relu(x) 
+        x = F.relu(x)
         x = torch.floor(x)
 
         # add layers
-        for i in range(2, N_LAYERS):
+        for i in range(2, N_BACKBONE_LAYERS):
             x = getattr(self, 'conv' + str(i))(x)
             x = F.relu(x)
             x = torch.floor(x)
-        
 
         # this will be also saved
-        x = x.view(-1, DIMS*DIMS*2) # 64 x 3136/2
+        x = x.view(-1, DIMS*DIMS*2)  # 64 x 3136/2
         # print(x.shape)
         x = self.fc1(x)
         return x
@@ -147,14 +154,14 @@ def main():
 
     transform = transforms.Compose([
         transforms.ToTensor(),
-        # transforms.Resize((4, 4)),
+        transforms.Resize((DIMS, DIMS)),
         ToInt()
     ])
     dataset1 = datasets.MNIST('../data', train=True, download=True,
                               transform=transform)
     dataset2 = datasets.MNIST('../data', train=False,
                               transform=transform)
-                              
+
     train_loader = torch.utils.data.DataLoader(dataset1, **train_kwargs)
     test_loader = torch.utils.data.DataLoader(dataset2, **test_kwargs)
 
@@ -184,30 +191,16 @@ def main():
             activation[name] = output.detach()
         return hook
 
-    # model.conv1.register_forward_hook(get_activation('conv1'))
-    # model.conv2.register_forward_hook(get_activation('conv2'))
-    # model.conv3.register_forward_hook(get_activation('conv3'))
-
     # register hooks for all conv layers
-    for i in range(1, N_LAYERS):
-        model.__getattr__(f"conv{i}").register_forward_hook(get_activation(f"conv{i}"))
-
-
-
-    print(model.state_dict()['conv2.weight'].numpy())
-    print(model.state_dict()['conv2.weight'].numpy().shape)
-
+    for i in range(1, N_BACKBONE_LAYERS):
+        model.__getattr__(f"conv{i}").register_forward_hook(
+            get_activation(f"conv{i}"))
     y1 = model.presoftmax(X1).detach()
-
     X1 = X1.reshape(DIMS, DIMS, 1)
-    # import pdb; pdb.set_trace();
-
-    print("CONV2 WEIGHT")
-    print(np.transpose((model.state_dict()['conv2.weight'].numpy()), (2, 3, 1, 0)))
 
     # create backbone json
     backbone = []
-    for i in range(2, N_LAYERS):
+    for i in range(2, N_BACKBONE_LAYERS):
         backbone.append({
             "W": np.transpose((model.state_dict()[f"conv{i}.weight"].numpy()/SCALE).astype(int), (2, 3, 1, 0)).tolist(),
             "b": (model.state_dict()[f"conv{i}.bias"].numpy()/SCALE).astype(int).tolist(),
@@ -215,7 +208,7 @@ def main():
         })
 
     # export weights to json
-    with open('json/inp1_two_conv_mnist.json', 'w') as json_file:
+    with open(OUT_F, 'w') as json_file:
         in_json = {
             "x": X1.numpy().astype(int).tolist(),
             "head": {

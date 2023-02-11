@@ -1,9 +1,11 @@
+import os
 import json
 import pyperclip
 
 import numpy as np
 
 # simple script to write in massive weights matrix to the circom file / clipboard...
+
 
 def copy_data():
     # open tail_layer_smoke_test.json
@@ -66,6 +68,7 @@ component main { public [prevHash, in] } = TailLayer();"""
 
         print(c)
 
+
 def smoke():
     arr = "["
     for i in range(3136):
@@ -75,30 +78,33 @@ def smoke():
     arr += "]"
     pyperclip.copy(arr)
 
+
 def pad_json():
-    with open('json/inp1_two_conv_mnist.json') as f:
-        data = json.load(f)
+    for trace_f in os.listdir("json/"):
+        with open(f"json/{trace_f}") as f:
+            data = json.load(f)
 
-        head_activ = np.array(data["head"]["a"])
-        backbone = data["backbone"]
+            head_activ = np.array(data["head"]["a"])
+            backbone = data["backbone"]
 
-        # pad head_active to 6x6x2
-        head_activ = np.pad(head_activ, ((1, 1), (1, 1), (0,0)), 'constant', constant_values=0)
-        relud = np.maximum(0, head_activ)
-        data["head"]["a"] = relud.tolist()
-        print(relud.shape)
-        print(relud)
+            # pad head_active to 6x6x2
+            head_activ = np.pad(
+                head_activ, ((1, 1), (1, 1), (0, 0)), 'constant', constant_values=0)
+            relud = np.maximum(0, head_activ)
+            data["head"]["a"] = relud.tolist()
+            print(relud.shape)
+            print(relud)
 
-        for idx, bone in enumerate(backbone):
-            bone_activ = np.array(bone["a"]).reshape((28, 28, 2))
-            bone_activ = np.pad(bone_activ, ((1, 1), (1, 1), (0,0)), 'constant', constant_values=0)
-            relud = np.maximum(0, bone_activ)
-            backbone[idx]["a"] = relud.tolist()
-            print(bone_activ.shape)
-        
-        with open('json/PAD_inp1_two_conv_mnist.json', 'w') as outfile:
-            json.dump(data, outfile)
-        
+            for idx, bone in enumerate(backbone):
+                bone_activ = np.array(bone["a"]).reshape((28, 28, 2))
+                bone_activ = np.pad(
+                    bone_activ, ((1, 1), (1, 1), (0, 0)), 'constant', constant_values=0)
+                relud = np.maximum(0, bone_activ)
+                backbone[idx]["a"] = relud.tolist()
+                print(bone_activ.shape)
+
+            with open(f"json/PADDED_{trace_f}", 'w') as outfile:
+                json.dump(data, outfile)
 
 
 pad_json()

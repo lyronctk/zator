@@ -23,8 +23,10 @@ use std::{
 
 type C1 = CircomCircuit<<G1 as Group>::Scalar>;
 type C2 = TrivialTestCircuit<<G2 as Group>::Scalar>;
-type S1 = nova_snark::spartan::RelaxedR1CSSNARK<G1>;
-type S2 = nova_snark::spartan::RelaxedR1CSSNARK<G2>;
+type EE1 = nova_snark::provider::ipa_pc::EvaluationEngine<G1>;
+type EE2 = nova_snark::provider::ipa_pc::EvaluationEngine<G2>;
+type S1 = nova_snark::spartan::RelaxedR1CSSNARK<G1, EE1>;
+type S2 = nova_snark::spartan::RelaxedR1CSSNARK<G2, EE2>;
 
 const FWD_PASS_F: &str = "../models/json/PAD_inp1_two_conv_mnist.json";
 
@@ -268,8 +270,8 @@ fn spartan(
 ) -> (CompressedSNARK<G1, G2, C1, C2, S1, S2>, Duration, Duration) {
     println!("- Generating");
     let start = Instant::now();
-    type S1 = nova_snark::spartan_with_ipa_pc::RelaxedR1CSSNARK<G1>;
-    type S2 = nova_snark::spartan_with_ipa_pc::RelaxedR1CSSNARK<G2>;
+    type S1 = nova_snark::spartan::RelaxedR1CSSNARK<G1, EE1>;
+    type S2 = nova_snark::spartan::RelaxedR1CSSNARK<G2, EE1>;
     let res = CompressedSNARK::<_, _, _, _, S1, S2>::prove(&pp, &recursive_snark);
     assert!(res.is_ok());
     let spartan_proving_time = start.elapsed();

@@ -23,8 +23,8 @@ use std::{
 
 type C1 = CircomCircuit<<G1 as Group>::Scalar>;
 type C2 = TrivialTestCircuit<<G2 as Group>::Scalar>;
-type S1 = nova_snark::spartan_with_ipa_pc::RelaxedR1CSSNARK<G1>;
-type S2 = nova_snark::spartan_with_ipa_pc::RelaxedR1CSSNARK<G2>;
+type S1 = nova_snark::spartan::RelaxedR1CSSNARK<G1>;
+type S2 = nova_snark::spartan::RelaxedR1CSSNARK<G2>;
 
 const FWD_PASS_F: &str = "../models/json/PAD_inp1_two_conv_mnist.json";
 

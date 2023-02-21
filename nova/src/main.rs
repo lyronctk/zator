@@ -1,3 +1,7 @@
+/*
+ * Verifies the forward pass of a CNN with a homogenous backbone. Does so using 
+ * Nova for IVC. Composed with Spartan to produce a final succinct proof. 
+ */
 use nova_scotia::{
     circom::{
         circuit::{CircomCircuit, R1CS},
@@ -53,7 +57,7 @@ struct ConvLayer {
 
 #[derive(Debug, Deserialize)]
 struct DenseLayer {
-    // dims: [nInputs x nOutput], note non-standard transpose
+    // dims: [nInputs x nOutput]
     W: Vec<Vec<i64>>,
     // dims: [nOutputs]
     b: Vec<i64>,
@@ -63,12 +67,16 @@ struct DenseLayer {
 
 #[derive(Debug, Deserialize)]
 struct ForwardPass {
+    // dims: [nRows x nCols x nChannels]
     x: Vec<Vec<Vec<i64>>>,
     head: ConvLayer,
     backbone: Vec<ConvLayer>,
     tail: DenseLayer,
+    // For convolution
     padding: usize,
+    // Scale factor
     scale: f64,
+    // Which run
     label: u64,
 }
 
@@ -81,17 +89,23 @@ struct RecursionInputs {
 
 #[derive(Serialize)]
 struct StringifiedSpartanProof {
+    // Instance for non-interactive folding scheme
     nifs_primary: String,
+    // Spartan proof of satisfying witness
     f_W_snark_primary: String,
+    // Instance for non-interactive folding scheme
     nifs_secondary: String,
+    // Spartan proof of satisfying witness
     f_W_snark_secondary: String,
+    // Final output of primary circuit
     zn_primary: String,
+    // Final output of secondary circuit
     zn_secondary: String,
 }
 
 /*
-* Read in the forward pass (i.e. parameters and inputs/outputs for each layer).
-*/
+ * Load in the forward pass (i.e. parameters and inputs/outputs for each layer).
+ */
 fn read_fwd_pass(f: &str) -> ForwardPass {
     let f = File::open(f).unwrap();
     let rdr = BufReader::new(f);
@@ -100,8 +114,8 @@ fn read_fwd_pass(f: &str) -> ForwardPass {
 }
 
 /*
-* Generates public parameters for Nova.
-*/
+ * Generates public parameters for Nova.
+ */
 fn setup(r1cs: &R1CS<F1>) -> PublicParams<G1, G2, C1, C2> {
     let pp = create_public_params(r1cs.clone());
 
@@ -117,7 +131,10 @@ fn setup(r1cs: &R1CS<F1>) -> PublicParams<G1, G2, C1, C2> {
     pp
 }
 
-// On vesta curve
+/*
+ * Computes the MiMC hash of an input 3D array. Used to satisfy input hash
+ * check for initial backbone layer.
+ */
 fn mimc3d(r1cs: &R1CS<F1>, wasm: PathBuf, arr: Vec<Vec<Vec<i64>>>) -> BigInt {
     let witness_gen_output = PathBuf::from("circom_witness.wtns");
 
@@ -129,7 +146,7 @@ fn mimc3d(r1cs: &R1CS<F1>, wasm: PathBuf, arr: Vec<Vec<Vec<i64>>>) -> BigInt {
     let witness = generate_witness_from_wasm::<<G1 as Group>::Scalar>(
         &FileLocation::PathBuf(wasm),
         &input_json,
-        &witness_gen_output
+        &witness_gen_output,
     );
 
     let circuit = CircomCircuit {
@@ -146,6 +163,10 @@ fn mimc3d(r1cs: &R1CS<F1>, wasm: PathBuf, arr: Vec<Vec<Vec<i64>>>) -> BigInt {
     BigInt::from_str_radix(&stripped, 16).unwrap()
 }
 
+/*
+ * Utility function for removing the 1 element padding around activation 
+ * volumes. 
+ */
 fn rm_padding(arr: &Vec<Vec<Vec<i64>>>, padding: usize) -> Vec<Vec<Vec<i64>>> {
     let rows = arr.len() - padding * 2;
     let cols = arr[0].len() - padding * 2;
@@ -206,10 +227,10 @@ fn construct_inputs(
 }
 
 /*
-* Uses Nova's folding scheme to produce a single relaxed R1CS instance that,
-* when satisfied, proves the proper execution of every step in the recursion.
-* Can be thought of as a pre-processing step for the final SNARK.
-*/
+ * Uses Nova's folding scheme to produce a single relaxed R1CS instance that,
+ * when satisfied, proves the proper execution of every step in the recursion.
+ * Can be thought of as a pre-processing step for the final SNARK.
+ */
 fn recursion(
     witness_gen: PathBuf,
     r1cs: R1CS<F1>,
@@ -248,9 +269,9 @@ fn recursion(
 }
 
 /*
-* Uses Spartan w/ IPA-PC to prove knowledge of the output of Nova (a satisfied
-* relaxed R1CS instance) in a proof that can be verified with sub-linear cost.
-*/
+ * Uses Spartan w/ IPA-PC to prove knowledge of a valid Nova IVC proof. 
+ * Composition is for producing a final succinct proof of size log|C|.
+ */
 fn spartan(
     pp: &PublicParams<G1, G2, C1, C2>,
     recursive_snark: RecursiveSNARK<G1, G2, C1, C2>,

@@ -87,5 +87,4 @@ template Backbone(nRows, nCols, nChannels, nFilters, kernelSize, strides, paddin
     step_out[1] <== mimc_hash_activations.hash;
 }
 
-// MNIST takes a 28 x 28 image
-component main { public [step_in] } = Backbone(28, 28, 2, 2, 3, 1, 1);
+component main { public [step_in] } = Backbone(4, 4, 2, 2, 3, 1, 1);

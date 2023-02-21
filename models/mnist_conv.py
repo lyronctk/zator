@@ -37,7 +37,7 @@ class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
         self.conv1 = nn.Conv2d(1, 2, 3, 1, padding=PADDING)
-        for i in range(2, N_BACKBONE_LAYERS):
+        for i in range(2, 2 + N_BACKBONE_LAYERS):
             setattr(self, 'conv' + str(i),
                     nn.Conv2d(2, 2, 3, 1, padding=PADDING))
         self.fc1 = nn.Linear(DIMS*DIMS*2, 10)
@@ -52,7 +52,7 @@ class Net(nn.Module):
         x = torch.floor(x)
 
         # add layers
-        for i in range(2, N_BACKBONE_LAYERS):
+        for i in range(2, 2 + N_BACKBONE_LAYERS):
             x = getattr(self, 'conv' + str(i))(x)
             x = F.relu(x)
             x = torch.floor(x)
@@ -192,7 +192,7 @@ def main():
         return hook
 
     # register hooks for all conv layers
-    for i in range(1, N_BACKBONE_LAYERS):
+    for i in range(1, 2 + N_BACKBONE_LAYERS):
         model.__getattr__(f"conv{i}").register_forward_hook(
             get_activation(f"conv{i}"))
     y1 = model.presoftmax(X1).detach()
@@ -200,7 +200,7 @@ def main():
 
     # create backbone json
     backbone = []
-    for i in range(2, N_BACKBONE_LAYERS):
+    for i in range(2, 2 + N_BACKBONE_LAYERS):
         backbone.append({
             "W": np.transpose((model.state_dict()[f"conv{i}.weight"].numpy()/SCALE).astype(int), (2, 3, 1, 0)).tolist(),
             "b": (model.state_dict()[f"conv{i}.bias"].numpy()/SCALE).astype(int).tolist(),

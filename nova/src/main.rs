@@ -1,17 +1,21 @@
+/*
+ * Verifies the forward pass of a CNN with a homogenous backbone. Does so using 
+ * Nova for IVC. Composed with Spartan to produce a final succinct proof. 
+ */
 use nova_scotia::{
     circom::{
         circuit::{CircomCircuit, R1CS},
         reader::{generate_witness_from_wasm, load_r1cs},
     },
-    create_public_params, create_recursive_circuit, F1, F2, G1, G2,
+    create_public_params, create_recursive_circuit, FileLocation, F1, F2, G1, G2,
 };
 use nova_snark::{
     traits::{circuit::TrivialTestCircuit, Group},
     CompressedSNARK, PublicParams, RecursiveSNARK,
 };
+
 use num_bigint::BigInt;
 use num_traits::Num;
-use pasta_curves::Fq;
 use primitive_types::U256;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -20,19 +24,18 @@ use std::{
     time::Instant,
 };
 
-mod bench;
-
 type C1 = CircomCircuit<<G1 as Group>::Scalar>;
 type C2 = TrivialTestCircuit<<G2 as Group>::Scalar>;
-type S1 = nova_snark::spartan_with_ipa_pc::RelaxedR1CSSNARK<G1>;
-type S2 = nova_snark::spartan_with_ipa_pc::RelaxedR1CSSNARK<G2>;
+type EE1 = nova_snark::provider::ipa_pc::EvaluationEngine<G1>;
+type EE2 = nova_snark::provider::ipa_pc::EvaluationEngine<G2>;
+type S1 = nova_snark::spartan::RelaxedR1CSSNARK<G1, EE1>;
+type S2 = nova_snark::spartan::RelaxedR1CSSNARK<G2, EE2>;
 
-const FWD_PASS_F: &str = "../models/json/PAD_inp1_two_conv_mnist.json";
+const FWD_PASS_F: &str = "../models/json/PADDED_trace_dim4_nlayers2.json";
 
 const MIMC3D_R1CS_F: &str = "./circom/out/MiMC3D.r1cs";
 const MIMC3D_WASM_F: &str = "./circom/out/MiMC3D.wasm";
 const BACKBONE_R1CS_F: &str = "./circom/out/Backbone.r1cs";
-// TODO:: PUT CPP WITNESS GEN BELOW, DONT NEED TO CHANGE ANYTHING ELSE 
 const BACKBONE_WASM_F: &str = "./circom/out/Backbone.wasm";
 const PROOF_OUT_F: &str = "./out/spartan_proof.json";
 
@@ -44,7 +47,6 @@ struct MiMC3DInput {
 
 #[derive(Debug, Deserialize)]
 struct ConvLayer {
-    // NOTE: Non-standard transposes on matrices
     // dims: [kernelSize x kernelSize x nChannels x nFilters]
     W: Vec<Vec<Vec<Vec<i64>>>>,
     // dims: [nFilters]
@@ -55,8 +57,7 @@ struct ConvLayer {
 
 #[derive(Debug, Deserialize)]
 struct DenseLayer {
-    // NOTE: Non-standard transposes on matrices
-    // dims: [nInputs x nOutput], note non-standard transpose
+    // dims: [nInputs x nOutput]
     W: Vec<Vec<i64>>,
     // dims: [nOutputs]
     b: Vec<i64>,
@@ -66,12 +67,16 @@ struct DenseLayer {
 
 #[derive(Debug, Deserialize)]
 struct ForwardPass {
+    // dims: [nRows x nCols x nChannels]
     x: Vec<Vec<Vec<i64>>>,
     head: ConvLayer,
     backbone: Vec<ConvLayer>,
     tail: DenseLayer,
+    // For convolution
     padding: usize,
+    // Scale factor
     scale: f64,
+    // Which run
     label: u64,
 }
 
@@ -84,16 +89,22 @@ struct RecursionInputs {
 
 #[derive(Serialize)]
 struct StringifiedSpartanProof {
+    // Instance for non-interactive folding scheme
     nifs_primary: String,
+    // Spartan proof of satisfying witness
     f_W_snark_primary: String,
+    // Instance for non-interactive folding scheme
     nifs_secondary: String,
+    // Spartan proof of satisfying witness
     f_W_snark_secondary: String,
+    // Final output of primary circuit
     zn_primary: String,
-    zn_secondary: String
+    // Final output of secondary circuit
+    zn_secondary: String,
 }
 
 /*
- * Read in the forward pass (i.e. parameters and inputs/outputs for each layer).
+ * Load in the forward pass (i.e. parameters and inputs/outputs for each layer).
  */
 fn read_fwd_pass(f: &str) -> ForwardPass {
     let f = File::open(f).unwrap();
@@ -120,9 +131,11 @@ fn setup(r1cs: &R1CS<F1>) -> PublicParams<G1, G2, C1, C2> {
     pp
 }
 
-// On vesta curve
-fn mimc3d(r1cs: &R1CS<F1>, wasm: &PathBuf, arr: Vec<Vec<Vec<i64>>>) -> BigInt {
-    let witness_gen_input = PathBuf::from("circom_input.json");
+/*
+ * Computes the MiMC hash of an input 3D array. Used to satisfy input hash
+ * check for initial backbone layer.
+ */
+fn mimc3d(r1cs: &R1CS<F1>, wasm: PathBuf, arr: Vec<Vec<Vec<i64>>>) -> BigInt {
     let witness_gen_output = PathBuf::from("circom_witness.wtns");
 
     let inp = MiMC3DInput {
@@ -130,10 +143,9 @@ fn mimc3d(r1cs: &R1CS<F1>, wasm: &PathBuf, arr: Vec<Vec<Vec<i64>>>) -> BigInt {
         arr: arr.clone(),
     };
     let input_json = serde_json::to_string(&inp).unwrap();
-    fs::write(&witness_gen_input, input_json).unwrap();
     let witness = generate_witness_from_wasm::<<G1 as Group>::Scalar>(
-        &wasm,
-        &witness_gen_input,
+        &FileLocation::PathBuf(wasm),
+        &input_json,
         &witness_gen_output,
     );
 
@@ -142,8 +154,6 @@ fn mimc3d(r1cs: &R1CS<F1>, wasm: &PathBuf, arr: Vec<Vec<Vec<i64>>>) -> BigInt {
         witness: Some(witness),
     };
     let pub_outputs = circuit.get_public_outputs();
-
-    fs::remove_file(witness_gen_input).unwrap();
     fs::remove_file(witness_gen_output).unwrap();
 
     let stripped = format!("{:?}", pub_outputs[0])
@@ -153,6 +163,10 @@ fn mimc3d(r1cs: &R1CS<F1>, wasm: &PathBuf, arr: Vec<Vec<Vec<i64>>>) -> BigInt {
     BigInt::from_str_radix(&stripped, 16).unwrap()
 }
 
+/*
+ * Utility function for removing the 1 element padding around activation 
+ * volumes. 
+ */
 fn rm_padding(arr: &Vec<Vec<Vec<i64>>>, padding: usize) -> Vec<Vec<Vec<i64>>> {
     let rows = arr.len() - padding * 2;
     let cols = arr[0].len() - padding * 2;
@@ -165,15 +179,15 @@ fn rm_padding(arr: &Vec<Vec<Vec<i64>>>, padding: usize) -> Vec<Vec<Vec<i64>>> {
 }
 
 /*
- * Constructs the inputs necessary for recursion. This includes 1) private
- * inputs for every step, and 2) initial public inputs for the first step of the
- * primary & secondary circuits.
- */
+* Constructs the inputs necessary for recursion. This includes 1) private
+* inputs for every step, and 2) initial public inputs for the first step of the
+* primary & secondary circuits.
+*/
 fn construct_inputs(
     fwd_pass: &ForwardPass,
     num_steps: usize,
     mimc3d_r1cs: &R1CS<F1>,
-    mimc3d_wasm: &PathBuf,
+    mimc3d_wasm: PathBuf,
 ) -> RecursionInputs {
     let mut private_inputs = Vec::new();
     for i in 0..num_steps {
@@ -197,8 +211,8 @@ fn construct_inputs(
     )
     .to_str_radix(10);
     let z0_primary = vec![
-        Fq::from(0),
-        Fq::from_raw(U256::from_dec_str(&v_1).unwrap().0),
+        F1::from(0),
+        F1::from_raw(U256::from_dec_str(&v_1).unwrap().0),
     ];
 
     // Secondary circuit is TrivialTestCircuit, filler val
@@ -227,7 +241,7 @@ fn recursion(
     println!("- Creating RecursiveSNARK");
     let start = Instant::now();
     let recursive_snark = create_recursive_circuit(
-        witness_gen,
+        FileLocation::PathBuf(witness_gen),
         r1cs,
         inputs.all_private.clone(),
         inputs.start_pub_primary.clone(),
@@ -237,9 +251,9 @@ fn recursion(
     println!("- Done ({:?})", start.elapsed());
 
     println!("- Verifying RecursiveSNARK");
-    println!("num_steps: {:?}", num_steps);
-    println!("z0 PRIMARY: {:?}", inputs.start_pub_primary);
-    println!("z0 SECONDARY: {:?}", inputs.start_pub_secondary);
+    println!("  - num_steps: {:?}", num_steps);
+    println!("  - z0 PRIMARY: {:?}", inputs.start_pub_primary);
+    println!("  - z0 SECONDARY: {:?}", inputs.start_pub_secondary);
     let start = Instant::now();
     let res = recursive_snark.verify(
         &pp,
@@ -248,15 +262,15 @@ fn recursion(
         inputs.start_pub_secondary.clone(),
     );
     assert!(res.is_ok());
-    println!("- Output of final step: {:?}", res.unwrap().0);
+    println!("  - Output of final step: {:?}", res.unwrap().0);
     println!("- Done ({:?})", start.elapsed());
 
     recursive_snark
 }
 
 /*
- * Uses Spartan w/ IPA-PC to prove knowledge of the output of Nova (a satisfied
- * relaxed R1CS instance) in a proof that can be verified with sub-linear cost.
+ * Uses Spartan w/ IPA-PC to prove knowledge of a valid Nova IVC proof. 
+ * Composition is for producing a final succinct proof of size log|C|.
  */
 fn spartan(
     pp: &PublicParams<G1, G2, C1, C2>,
@@ -267,14 +281,11 @@ fn spartan(
 ) -> CompressedSNARK<G1, G2, C1, C2, S1, S2> {
     println!("- Generating");
     let start = Instant::now();
-    type S1 = nova_snark::spartan_with_ipa_pc::RelaxedR1CSSNARK<G1>;
-    type S2 = nova_snark::spartan_with_ipa_pc::RelaxedR1CSSNARK<G2>;
     let res = CompressedSNARK::<_, _, _, _, S1, S2>::prove(&pp, &recursive_snark);
     assert!(res.is_ok());
     println!("- Done ({:?})", start.elapsed());
     let compressed_snark = res.unwrap();
 
-    println!("- Proof: {:?}", compressed_snark.f_W_snark_primary);
     let prf = StringifiedSpartanProof {
         nifs_primary: format!("{:?}", compressed_snark.nifs_primary),
         f_W_snark_primary: format!("{:?}", compressed_snark.f_W_snark_primary),
@@ -285,6 +296,7 @@ fn spartan(
     };
     let prf_json = serde_json::to_string(&prf).unwrap();
     fs::write(&proof_f, prf_json).unwrap();
+    println!("  - Proof written to {}", proof_f);
 
     println!("- Verifying");
     let start = Instant::now();
@@ -302,9 +314,9 @@ fn spartan(
 
 fn main() {
     let root = current_dir().unwrap();
-    let backbone_r1cs = load_r1cs(&root.join(BACKBONE_R1CS_F));
+    let backbone_r1cs = load_r1cs(&FileLocation::PathBuf(root.join(BACKBONE_R1CS_F)));
     let backbone_wasm = root.join(BACKBONE_WASM_F);
-    let mimc3d_r1cs = load_r1cs(&root.join(MIMC3D_R1CS_F));
+    let mimc3d_r1cs = load_r1cs(&FileLocation::PathBuf(root.join(MIMC3D_R1CS_F)));
     let mimc3d_wasm = root.join(MIMC3D_WASM_F);
 
     let start = Instant::now();
@@ -315,7 +327,7 @@ fn main() {
     println!("==");
 
     println!("== Constructing inputs");
-    let inputs = construct_inputs(&fwd_pass, num_steps, &mimc3d_r1cs, &mimc3d_wasm);
+    let inputs = construct_inputs(&fwd_pass, num_steps, &mimc3d_r1cs, mimc3d_wasm);
     println!("==");
 
     println!("== Creating circuit public parameters");

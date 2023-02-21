@@ -4,6 +4,7 @@
   "main": "index.js",
   "license": "MIT",
   "dependencies": {
-    "circomlib-ml-vesta": "^1.4.4"
+    "circomlib-ml-vesta": "^1.4.4",
+    "snarkjs": "^0.6.1"
   }
 }

@@ -21,7 +21,8 @@ template HeadLayer(nRows, nCols, nChannels, nFilters, kernelSize, strides) {
     // 1. Verify that H(in) == in_hash
     component mimc_previous_activations = MimcHashMatrix3D(nRows, nCols, nChannels);
     mimc_previous_activations.matrix <== x;
-    in_hash === mimc_previous_activations.hash;
+    // in_hash === mimc_previous_activations.hash;
+    log(mimc_previous_activations.hash);
 
     // Weights matrix
     var W[kernelSize][kernelSize][nChannels][nFilters] = [

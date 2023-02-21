@@ -133,6 +133,7 @@ fn mimc3d(r1cs: &R1CS<F1>, wasm: PathBuf, arr: Vec<Vec<Vec<i64>>>) -> BigInt {
         &FileLocation::PathBuf(wasm),
         &input_json,
         &witness_gen_output,
+        777i32,
     );
 
     let circuit = CircomCircuit {

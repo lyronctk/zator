@@ -14,7 +14,7 @@ template HeadLayer(nRows, nCols, nChannels, nFilters, kernelSize, strides) {
     var convLayerOutputRows = (nRows-kernelSize)\strides+1;
     var convLayerOutputCols = (nCols-kernelSize)\strides+1;
     var convLayerOutputDepth = nFilters;
-    var scaleFactor = 10**9;
+    var scaleFactor = 10**16;
     signal activations[convLayerOutputRows][convLayerOutputCols][convLayerOutputDepth];
     signal output out;
 
@@ -25,73 +25,13 @@ template HeadLayer(nRows, nCols, nChannels, nFilters, kernelSize, strides) {
 
     // Weights matrix
     var W[kernelSize][kernelSize][nChannels][nFilters] = [
-      [
-        [
-          [
-            0,
-            0
-          ]
-        ],
-        [
-          [
-            0,
-            0
-          ]
-        ],
-        [
-          [
-            0,
-            0
-          ]
-        ]
-      ],
-      [
-        [
-          [
-            0,
-            0
-          ]
-        ],
-        [
-          [
-            0,
-            0
-          ]
-        ],
-        [
-          [
-            0,
-            0
-          ]
-        ]
-      ],
-      [
-        [
-          [
-            0,
-            0
-          ]
-        ],
-        [
-          [
-            0,
-            0
-          ]
-        ],
-        [
-          [
-            0,
-            0
-          ]
-        ]
-      ]
+      [[[0, 0]], [[0, 0]], [[0, 0]]],
+      [[[0, 0]], [[0, 0]], [[0, 0]]],
+      [[[0, 0]], [[0, 0]], [[0, 0]]]
     ];
     
     // Bias vector
-    var b[nFilters] = [
-      0,
-      0
-    ];
+    var b[nFilters] = [0, 0];
 
     // 2. Generate Convolutional Network Output, Relu elements of 3D Matrix, and 
     // place the output into a flattened activations vector
@@ -119,5 +59,4 @@ template HeadLayer(nRows, nCols, nChannels, nFilters, kernelSize, strides) {
     out <== mimc_hash_activations.hash;
 }
 
-// Dimensions are 4x4, and we add a padding of 2 
 component main { public [in_hash] } = HeadLayer(4 + 2, 4 + 2, 1, 2, 3, 1);

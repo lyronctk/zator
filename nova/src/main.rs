@@ -16,7 +16,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::{
     collections::HashMap, env::current_dir, fs, fs::File, io::BufReader, path::PathBuf,
-    time::Instant, process::exit,
+    process::exit, time::Instant,
 };
 
 type C1 = CircomCircuit<<G1 as Group>::Scalar>;

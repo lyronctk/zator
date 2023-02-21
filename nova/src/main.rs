@@ -9,6 +9,7 @@ use nova_snark::{
     traits::{circuit::TrivialTestCircuit, Group},
     CompressedSNARK, PublicParams, RecursiveSNARK,
 };
+
 use num_bigint::BigInt;
 use num_traits::Num;
 use primitive_types::U256;
@@ -16,7 +17,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::{
     collections::HashMap, env::current_dir, fs, fs::File, io::BufReader, path::PathBuf,
-    process::exit, time::Instant,
+    time::Instant,
 };
 
 type C1 = CircomCircuit<<G1 as Group>::Scalar>;
@@ -31,7 +32,6 @@ const FWD_PASS_F: &str = "../models/json/PADDED_trace_dim4_nlayers2.json";
 const MIMC3D_R1CS_F: &str = "./circom/out/MiMC3D.r1cs";
 const MIMC3D_WASM_F: &str = "./circom/out/MiMC3D.wasm";
 const BACKBONE_R1CS_F: &str = "./circom/out/Backbone.r1cs";
-// TODO:: PUT CPP WITNESS GEN BELOW, DONT NEED TO CHANGE ANYTHING ELSE
 const BACKBONE_WASM_F: &str = "./circom/out/Backbone.wasm";
 const PROOF_OUT_F: &str = "./out/spartan_proof.json";
 
@@ -43,7 +43,6 @@ struct MiMC3DInput {
 
 #[derive(Debug, Deserialize)]
 struct ConvLayer {
-    // NOTE: Non-standard transposes on matrices
     // dims: [kernelSize x kernelSize x nChannels x nFilters]
     W: Vec<Vec<Vec<Vec<i64>>>>,
     // dims: [nFilters]
@@ -54,7 +53,6 @@ struct ConvLayer {
 
 #[derive(Debug, Deserialize)]
 struct DenseLayer {
-    // NOTE: Non-standard transposes on matrices
     // dims: [nInputs x nOutput], note non-standard transpose
     W: Vec<Vec<i64>>,
     // dims: [nOutputs]
@@ -121,7 +119,6 @@ fn setup(r1cs: &R1CS<F1>) -> PublicParams<G1, G2, C1, C2> {
 
 // On vesta curve
 fn mimc3d(r1cs: &R1CS<F1>, wasm: PathBuf, arr: Vec<Vec<Vec<i64>>>) -> BigInt {
-    let witness_gen_input = PathBuf::from("circom_input.json");
     let witness_gen_output = PathBuf::from("circom_witness.wtns");
 
     let inp = MiMC3DInput {
@@ -132,8 +129,7 @@ fn mimc3d(r1cs: &R1CS<F1>, wasm: PathBuf, arr: Vec<Vec<Vec<i64>>>) -> BigInt {
     let witness = generate_witness_from_wasm::<<G1 as Group>::Scalar>(
         &FileLocation::PathBuf(wasm),
         &input_json,
-        &witness_gen_output,
-        777i32,
+        &witness_gen_output
     );
 
     let circuit = CircomCircuit {
@@ -234,9 +230,9 @@ fn recursion(
     println!("- Done ({:?})", start.elapsed());
 
     println!("- Verifying RecursiveSNARK");
-    println!("num_steps: {:?}", num_steps);
-    println!("z0 PRIMARY: {:?}", inputs.start_pub_primary);
-    println!("z0 SECONDARY: {:?}", inputs.start_pub_secondary);
+    println!("  - num_steps: {:?}", num_steps);
+    println!("  - z0 PRIMARY: {:?}", inputs.start_pub_primary);
+    println!("  - z0 SECONDARY: {:?}", inputs.start_pub_secondary);
     let start = Instant::now();
     let res = recursive_snark.verify(
         &pp,
@@ -245,7 +241,7 @@ fn recursion(
         inputs.start_pub_secondary.clone(),
     );
     assert!(res.is_ok());
-    println!("- Output of final step: {:?}", res.unwrap().0);
+    println!("  - Output of final step: {:?}", res.unwrap().0);
     println!("- Done ({:?})", start.elapsed());
 
     recursive_snark
@@ -269,7 +265,6 @@ fn spartan(
     println!("- Done ({:?})", start.elapsed());
     let compressed_snark = res.unwrap();
 
-    println!("- Proof: {:?}", compressed_snark.f_W_snark_primary);
     let prf = StringifiedSpartanProof {
         nifs_primary: format!("{:?}", compressed_snark.nifs_primary),
         f_W_snark_primary: format!("{:?}", compressed_snark.f_W_snark_primary),
@@ -280,6 +275,7 @@ fn spartan(
     };
     let prf_json = serde_json::to_string(&prf).unwrap();
     fs::write(&proof_f, prf_json).unwrap();
+    println!("  - Proof written to {}", proof_f);
 
     println!("- Verifying");
     let start = Instant::now();

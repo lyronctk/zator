@@ -5,15 +5,14 @@ import pyperclip
 import numpy as np
 
 # simple script to write in massive weights matrix to the circom file / clipboard...
-DEBUG = True
+DEBUG = False
 
 SCALE = 1e-16
 PADDING = 1
-EPOCHS = 10
+EPOCHS = 1
 DIMS = 28
 N_BACKBONE_LAYERS = 510
 if DEBUG:
-    EPOCHS = 1
     DIMS = 4
     N_BACKBONE_LAYERS = 2
 TRACE_F = f"json/trace_dim{DIMS}_nlayers{N_BACKBONE_LAYERS}.json"

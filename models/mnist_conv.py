@@ -12,11 +12,11 @@ import matplotlib.pyplot as plt
 
 import json
 
-DEBUG = True
+DEBUG = False
 
 SCALE = 1e-16
 PADDING = 1
-EPOCHS = 10
+EPOCHS = 1
 DIMS = 28
 N_BACKBONE_LAYERS = 510
 if DEBUG:

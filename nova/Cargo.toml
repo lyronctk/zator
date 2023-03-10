@@ -8,6 +8,7 @@ default-run = "nova"
 
 [dependencies]
 ff = {package="ff_ce" , version="0.11", features = ["derive"]}
+flamegraph = "0.6.2"
 mimc-rs = "0.0.2"
 nova-scotia = { path = "../../nova-scotia" }
 nova-snark = { path = "../../nova-snark" }

@@ -32,7 +32,7 @@ type EE2 = nova_snark::provider::ipa_pc::EvaluationEngine<G2>;
 type S1 = nova_snark::spartan::RelaxedR1CSSNARK<G1, EE1>;
 type S2 = nova_snark::spartan::RelaxedR1CSSNARK<G2, EE2>;
 
-const DEBUG: bool = true;
+const DEBUG: bool = false;
 
 const TRACE_NAME: &str = if DEBUG {
     "PADDED_trace_dim4_nlayers2.json"
@@ -45,7 +45,7 @@ const CIRCOM_PREFIX: &str = if DEBUG {
     "./circom/out"
 };
 
-const FWD_PASS_F: &str = "../models/json/PADDED_trace_dim4_nlayers2.json";
+const FWD_PASS_F: &str = formatcp!("../models/json/{}", TRACE_NAME);
 const MIMC3D_R1CS_F: &str = formatcp!("{}/MiMC3D.r1cs", CIRCOM_PREFIX);
 const MIMC3D_WASM_F: &str = formatcp!("{}/MiMC3D.wasm", CIRCOM_PREFIX);
 const BACKBONE_R1CS_F: &str = formatcp!("{}/Backbone.r1cs", CIRCOM_PREFIX);

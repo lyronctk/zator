@@ -1,7 +1,8 @@
 /*
- * Verifies the forward pass of a CNN with a homogenous backbone. Does so using 
- * Nova for IVC. Composed with Spartan to produce a final succinct proof. 
+ * Verifies the forward pass of a CNN with a homogenous backbone. Does so using
+ * Nova for IVC. Composed with Spartan to produce a final succinct proof.
  */
+use const_format::formatcp;
 use nova_scotia::{
     circom::{
         circuit::{CircomCircuit, R1CS},
@@ -31,13 +32,25 @@ type EE2 = nova_snark::provider::ipa_pc::EvaluationEngine<G2>;
 type S1 = nova_snark::spartan::RelaxedR1CSSNARK<G1, EE1>;
 type S2 = nova_snark::spartan::RelaxedR1CSSNARK<G2, EE2>;
 
-const FWD_PASS_F: &str = "../models/json/PADDED_trace_dim4_nlayers2.json";
+const DEBUG: bool = true;
 
-const MIMC3D_R1CS_F: &str = "./circom/out/MiMC3D.r1cs";
-const MIMC3D_WASM_F: &str = "./circom/out/MiMC3D.wasm";
-const BACKBONE_R1CS_F: &str = "./circom/out/Backbone.r1cs";
-const BACKBONE_F: &str = "./circom/out/Backbone.wasm";
-const PROOF_OUT_F: &str = "./out/spartan_proof.json";
+const TRACE_NAME: &str = if DEBUG {
+    "PADDED_trace_dim4_nlayers2.json"
+} else {
+    "PADDED_trace_dim28_nlayers510.json"
+};
+const CIRCOM_PREFIX: &str = if DEBUG {
+    "./circom/out_debug"
+} else {
+    "./circom/out"
+};
+
+const FWD_PASS_F: &str = "../models/json/PADDED_trace_dim4_nlayers2.json";
+const MIMC3D_R1CS_F: &str = formatcp!("{}/MiMC3D.r1cs", CIRCOM_PREFIX);
+const MIMC3D_WASM_F: &str = formatcp!("{}/MiMC3D.wasm", CIRCOM_PREFIX);
+const BACKBONE_R1CS_F: &str = formatcp!("{}/Backbone.r1cs", CIRCOM_PREFIX);
+const BACKBONE_F: &str = formatcp!("{}/Backbone", CIRCOM_PREFIX);
+const PROOF_OUT_F: &str = formatcp!("./out/{}_spartan_proof.json", TRACE_NAME);
 
 #[derive(Serialize)]
 struct MiMC3DInput {
@@ -164,8 +177,8 @@ fn mimc3d(r1cs: &R1CS<F1>, wasm: PathBuf, arr: Vec<Vec<Vec<i64>>>) -> BigInt {
 }
 
 /*
- * Utility function for removing the 1 element padding around activation 
- * volumes. 
+ * Utility function for removing the 1 element padding around activation
+ * volumes.
  */
 fn rm_padding(arr: &Vec<Vec<Vec<i64>>>, padding: usize) -> Vec<Vec<Vec<i64>>> {
     let rows = arr.len() - padding * 2;
@@ -269,7 +282,7 @@ fn recursion(
 }
 
 /*
- * Uses Spartan w/ IPA-PC to prove knowledge of a valid Nova IVC proof. 
+ * Uses Spartan w/ IPA-PC to prove knowledge of a valid Nova IVC proof.
  * Composition is for producing a final succinct proof of size log|C|.
  */
 fn spartan(

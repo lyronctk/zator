@@ -17,5 +17,6 @@ fi
 
 # Clean up
 mv Backbone_cpp/Backbone ../out
+mv Backbone_cpp/Backbone.dat ../out
 mv Backbone.r1cs ../out
 rm -r Backbone_cpp/ Backbone.wtns

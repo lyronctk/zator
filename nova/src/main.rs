@@ -36,7 +36,7 @@ const FWD_PASS_F: &str = "../models/json/PADDED_trace_dim4_nlayers2.json";
 const MIMC3D_R1CS_F: &str = "./circom/out/MiMC3D.r1cs";
 const MIMC3D_WASM_F: &str = "./circom/out/MiMC3D.wasm";
 const BACKBONE_R1CS_F: &str = "./circom/out/Backbone.r1cs";
-const BACKBONE_F: &str = "./circom/out/Backbone";
+const BACKBONE_F: &str = "./circom/out/Backbone.wasm";
 const PROOF_OUT_F: &str = "./out/spartan_proof.json";
 
 #[derive(Serialize)]

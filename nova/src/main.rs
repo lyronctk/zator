@@ -36,7 +36,7 @@ const FWD_PASS_F: &str = "../models/json/PADDED_trace_dim4_nlayers2.json";
 const MIMC3D_R1CS_F: &str = "./circom/out/MiMC3D.r1cs";
 const MIMC3D_WASM_F: &str = "./circom/out/MiMC3D.wasm";
 const BACKBONE_R1CS_F: &str = "./circom/out/Backbone.r1cs";
-const BACKBONE_WASM_F: &str = "./circom/out/Backbone.wasm";
+const BACKBONE_F: &str = "./circom/out/Backbone";
 const PROOF_OUT_F: &str = "./out/spartan_proof.json";
 
 #[derive(Serialize)]
@@ -315,7 +315,7 @@ fn spartan(
 fn main() {
     let root = current_dir().unwrap();
     let backbone_r1cs = load_r1cs(&FileLocation::PathBuf(root.join(BACKBONE_R1CS_F)));
-    let backbone_wasm = root.join(BACKBONE_WASM_F);
+    let backbone_witgen = root.join(BACKBONE_F);
     let mimc3d_r1cs = load_r1cs(&FileLocation::PathBuf(root.join(MIMC3D_R1CS_F)));
     let mimc3d_wasm = root.join(MIMC3D_WASM_F);
 
@@ -335,7 +335,7 @@ fn main() {
     println!("==");
 
     println!("== Executing recursion using Nova");
-    let recursive_snark = recursion(backbone_wasm, backbone_r1cs, &inputs, &pp, num_steps);
+    let recursive_snark = recursion(backbone_witgen, backbone_r1cs, &inputs, &pp, num_steps);
     println!("==");
 
     println!("== Producing a CompressedSNARK using Spartan w/ IPA-PC");

@@ -11,4 +11,4 @@ template MiMC3D(H, W, D) {
     // log(h);
 }
 
-component main { public [ dummy ] } = MiMC3D(4, 4, 2);
+component main { public [ dummy ] } = MiMC3D(28, 28, 2);

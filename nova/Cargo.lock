@@ -1088,7 +1088,6 @@ dependencies = [
  "nova-snark",
  "num-bigint 0.2.6",
  "num-traits",
- "pasta_curves",
  "primitive-types",
  "r1cs",
  "serde",
@@ -1097,7 +1096,9 @@ dependencies = [
 
 [[package]]
 name = "nova-scotia"
-version = "0.1.0"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5a5cc18438bbe29ee6da6e1ae2cc2b35a345f353705fdd544d4f38c21c2c91c1"
 dependencies = [
  "anyhow",
  "bellperson",
@@ -1120,7 +1121,9 @@ dependencies = [
 
 [[package]]
 name = "nova-snark"
-version = "0.14.0"
+version = "0.19.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "09eec7cd7735347695b0b68bd9ea63d9be9a61d2436fa72e37799d82616fbea3"
 dependencies = [
  "bellperson",
  "bincode",
@@ -1343,21 +1346,6 @@ dependencies = [
  "redox_syscall",
  "smallvec",
  "windows-sys",
-]
-
-[[package]]
-name = "pasta_curves"
-version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5cc65faf8e7313b4b1fbaa9f7ca917a0eed499a9663be71477f87993604341d8"
-dependencies = [
- "blake2b_simd",
- "ff",
- "group",
- "lazy_static",
- "rand 0.8.5",
- "static_assertions",
- "subtle",
 ]
 
 [[package]]

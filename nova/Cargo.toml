@@ -11,11 +11,10 @@ const_format = "0.2.30"
 ff = {package="ff_ce" , version="0.11", features = ["derive"]}
 flamegraph = "0.6.2"
 mimc-rs = "0.0.2"
-nova-scotia = { path = "../../nova-scotia" }
-nova-snark = { path = "../../nova-snark" }
+nova-scotia = "0.2.2"
+nova-snark = "0.19.0"
 num-bigint = "0.2.2"
 num-traits = "0.2.15"
-pasta_curves = "0.4.0"
 primitive-types = "0.12.1"
 r1cs = "0.4.7"
 serde = { version = "1.0.152", features = ["derive"] }

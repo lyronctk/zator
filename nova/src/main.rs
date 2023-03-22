@@ -8,7 +8,7 @@ use nova_scotia::{
         circuit::{CircomCircuit, R1CS},
         reader::{generate_witness_from_wasm, load_r1cs},
     },
-    create_public_params, create_recursive_circuit, FileLocation, F1, F2, G1, G2,
+    create_public_params, create_recursive_circuit, FileLocation, F1, F2, G1, G2, S1, S2,
 };
 use nova_snark::{
     traits::{circuit::TrivialTestCircuit, Group},
@@ -27,10 +27,6 @@ use std::{
 
 type C1 = CircomCircuit<<G1 as Group>::Scalar>;
 type C2 = TrivialTestCircuit<<G2 as Group>::Scalar>;
-type EE1 = nova_snark::provider::ipa_pc::EvaluationEngine<G1>;
-type EE2 = nova_snark::provider::ipa_pc::EvaluationEngine<G2>;
-type S1 = nova_snark::spartan::RelaxedR1CSSNARK<G1, EE1>;
-type S2 = nova_snark::spartan::RelaxedR1CSSNARK<G2, EE2>;
 
 const DEBUG: bool = false;
 
@@ -50,7 +46,6 @@ const MIMC3D_R1CS_F: &str = formatcp!("{}/MiMC3D.r1cs", CIRCOM_PREFIX);
 const MIMC3D_WASM_F: &str = formatcp!("{}/MiMC3D.wasm", CIRCOM_PREFIX);
 const BACKBONE_R1CS_F: &str = formatcp!("{}/Backbone.r1cs", CIRCOM_PREFIX);
 const BACKBONE_F: &str = formatcp!("{}/Backbone", CIRCOM_PREFIX);
-const PROOF_OUT_F: &str = formatcp!("./out/{}_spartan_proof.json", TRACE_NAME);
 
 #[derive(Serialize)]
 struct MiMC3DInput {
@@ -98,22 +93,6 @@ struct RecursionInputs {
     all_private: Vec<HashMap<String, Value>>,
     start_pub_primary: Vec<F1>,
     start_pub_secondary: Vec<F2>,
-}
-
-#[derive(Serialize)]
-struct StringifiedSpartanProof {
-    // Instance for non-interactive folding scheme
-    nifs_primary: String,
-    // Spartan proof of satisfying witness
-    f_W_snark_primary: String,
-    // Instance for non-interactive folding scheme
-    nifs_secondary: String,
-    // Spartan proof of satisfying witness
-    f_W_snark_secondary: String,
-    // Final output of primary circuit
-    zn_primary: String,
-    // Final output of secondary circuit
-    zn_secondary: String,
 }
 
 /*
@@ -289,32 +268,21 @@ fn spartan(
     pp: &PublicParams<G1, G2, C1, C2>,
     recursive_snark: RecursiveSNARK<G1, G2, C1, C2>,
     num_steps: usize,
-    inputs: &RecursionInputs,
-    proof_f: &str,
+    inputs: &RecursionInputs
 ) -> CompressedSNARK<G1, G2, C1, C2, S1, S2> {
     println!("- Generating");
     let start = Instant::now();
-    let res = CompressedSNARK::<_, _, _, _, S1, S2>::prove(&pp, &recursive_snark);
+    let (pk, vk) = CompressedSNARK::<_, _, _, _, S1, S2>::setup(&pp).unwrap();
+    let res = CompressedSNARK::<_, _, _, _, S1, S2>::prove(&pp, &pk, &recursive_snark);
+
     assert!(res.is_ok());
     println!("- Done ({:?})", start.elapsed());
     let compressed_snark = res.unwrap();
 
-    let prf = StringifiedSpartanProof {
-        nifs_primary: format!("{:?}", compressed_snark.nifs_primary),
-        f_W_snark_primary: format!("{:?}", compressed_snark.f_W_snark_primary),
-        nifs_secondary: format!("{:?}", compressed_snark.nifs_secondary),
-        f_W_snark_secondary: format!("{:?}", compressed_snark.f_W_snark_secondary),
-        zn_primary: format!("{:?}", compressed_snark.zn_primary),
-        zn_secondary: format!("{:?}", compressed_snark.zn_secondary),
-    };
-    let prf_json = serde_json::to_string(&prf).unwrap();
-    fs::write(&proof_f, prf_json).unwrap();
-    println!("  - Proof written to {}", proof_f);
-
     println!("- Verifying");
     let start = Instant::now();
     let res = compressed_snark.verify(
-        &pp,
+        &vk,
         num_steps,
         inputs.start_pub_primary.clone(),
         inputs.start_pub_secondary.clone(),
@@ -352,7 +320,7 @@ fn main() {
     println!("==");
 
     println!("== Producing a CompressedSNARK using Spartan w/ IPA-PC");
-    let _compressed_snark = spartan(&pp, recursive_snark, num_steps, &inputs, PROOF_OUT_F);
+    let _compressed_snark = spartan(&pp, recursive_snark, num_steps, &inputs);
     println!("==");
 
     println!("** Total time to completion: ({:?})", start.elapsed());

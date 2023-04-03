@@ -388,6 +388,6 @@
         let total_prover_time = nova_snark_proving_time + spartan_proving_time;
         let total_verifying_time = nova_snark_verifying_time + spartan_verifying_time;
         // Write the results to the benchmark file
-        file.write_all(format!("{},{:?},{:?}\n", num_layers, total_prover_time, total_verifying_time).as_bytes()).unwrap();
+        file.write_all(format!("{},{},{:?},{:?}\n", num_steps, num_layers, total_prover_time, total_verifying_time).as_bytes()).unwrap();
     }
  } 

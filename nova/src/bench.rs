@@ -21,8 +21,9 @@
  use serde::{Deserialize, Serialize};
  use serde_json::{json, Value};
  use std::{
-     collections::HashMap, env::current_dir, fs, fs::File, io::BufReader, path::PathBuf,
-     time::Instant,
+     collections::HashMap, env::current_dir, fs, fs::File, path::PathBuf,
+     time::{Duration, Instant},
+     io::{BufReader, Write}
  };
  
  type C1 = CircomCircuit<<G1 as Group>::Scalar>;
@@ -46,15 +47,6 @@
  const MIMC3D_WASM_F: &str = formatcp!("{}/MiMC3D.wasm", CIRCOM_PREFIX);
  const BACKBONE_R1CS_F: &str = formatcp!("{}/Backbone.r1cs", CIRCOM_PREFIX);
  const BACKBONE_F: &str = formatcp!("{}/Backbone", CIRCOM_PREFIX);
- let mut num_layers_to_backbone_r1cs = HashMap::new();
- num_layers_to_backbone_r1cs.insert(1, formatcp!("{}/Backbone1.r1cs", CIRCOM_PREFIX));
- num_layers_to_backbone_r1cs.insert(2, formatcp!("{}/Backbone2.r1cs", CIRCOM_PREFIX));
- num_layers_to_backbone_r1cs.insert(3, formatcp!("{}/Backbone3.r1cs", CIRCOM_PREFIX));
- let mut num_layers_to_backbone = HashMap::new();
- num_layers_to_backbone.insert(1, formatcp!("{}/Backbone1", CIRCOM_PREFIX));
- num_layers_to_backbone.insert(2, formatcp!("{}/Backbone2", CIRCOM_PREFIX));
- num_layers_to_backbone.insert(3, formatcp!("{}/Backbone3", CIRCOM_PREFIX));
-
  
  #[derive(Serialize)]
  struct MiMC3DInput {
@@ -194,9 +186,9 @@
      if num_steps == 510 {
         for i in 0..num_steps {
             let a = if i > 0 {
-                &fwd_pass.backbone[i - 1].a
+                &fwd_pass.backbone[i - 1].a;
             } else {
-                &fwd_pass.head.a
+                &fwd_pass.head.a;
             };
             let priv_in = HashMap::from([
                 (String::from("a_prev"), json!(a)),
@@ -208,11 +200,11 @@
      } else if num_steps == 255 {
         for i in (0..510).step_by(2) {
             let a_prev_1 = if i > 0 {
-                &fwd_pass.backbone[i - 1].a
+                &fwd_pass.backbone[i - 1].a;
             } else {
-                &fwd_pass.head.a
+                &fwd_pass.head.a;
             };
-            let a_prev_2 = &fwd_pass.backbone[i].a
+            let a_prev_2 = &fwd_pass.backbone[i].a;
             let priv_in = HashMap::from([
                 (String::from("a_prev_1"), json!(a_prev_1)),
                 (String::from("W_1"), json!(fwd_pass.backbone[i].W)),
@@ -222,15 +214,16 @@
                 (String::from("b_2"), json!(fwd_pass.backbone[i + 1].b)),
             ]);
             private_inputs.push(priv_in);
-        } else { // num_steps = 170
+        }
+    } else { // num_steps = 170
             for i in (0..510).step_by(3) {
                 let a_prev_1 = if i > 0 {
-                    &fwd_pass.backbone[i - 1].a
+                    &fwd_pass.backbone[i - 1].a;
                 } else {
-                    &fwd_pass.head.a
+                    &fwd_pass.head.a;
                 };
-                let a_prev_2 = &fwd_pass.backbone[i].a
-                let a_prev_3 = &fwd_pass.backbone[i + 1].a
+                let a_prev_2 = &fwd_pass.backbone[i].a;
+                let a_prev_3 = &fwd_pass.backbone[i + 1].a;
                 let priv_in = HashMap::from([
                     (String::from("a_prev_1"), json!(a_prev_1)),
                     (String::from("W_1"), json!(fwd_pass.backbone[i].W)),
@@ -238,7 +231,7 @@
                     (String::from("a_prev_2"), json!(a_prev_2)),
                     (String::from("W_2"), json!(fwd_pass.backbone[i + 1].W)),
                     (String::from("b_2"), json!(fwd_pass.backbone[i + 1].b)),
-                    (String::from("a_prev_3"), json!(a_prev_2)),
+                    (String::from("a_prev_3"), json!(a_prev_3)),
                     (String::from("W_3"), json!(fwd_pass.backbone[i + 2].W)),
                     (String::from("b_3"), json!(fwd_pass.backbone[i + 2].b)),
                 ]);
@@ -321,7 +314,7 @@
      recursive_snark: RecursiveSNARK<G1, G2, C1, C2>,
      num_steps: usize,
      inputs: &RecursionInputs
- ) -> CompressedSNARK<G1, G2, C1, C2, S1, S2>, Duration, Duration) {
+ ) -> (CompressedSNARK<G1, G2, C1, C2, S1, S2>, Duration, Duration) {
      println!("- Generating");
      let start = Instant::now();
      let (pk, vk) = CompressedSNARK::<_, _, _, _, S1, S2>::setup(&pp).unwrap();
@@ -349,14 +342,23 @@
  
  fn main() {
     // Create a benchmark file
-    let mut file = std::fs::File::create("../out/benchmark.csv").unwrap();
+    let mut file = std::fs::File::create("./out/benchmark.csv").unwrap();
     file.write_all(b"Number of Recrusive Steps, Number of Layers per Step, Prover Time, Verifier Time").unwrap();
+    let mut num_layers_to_backbone_r1cs = HashMap::new();
+    num_layers_to_backbone_r1cs.insert(1, formatcp!("{}/Backbone1.r1cs", CIRCOM_PREFIX));
+    num_layers_to_backbone_r1cs.insert(2, formatcp!("{}/Backbone2.r1cs", CIRCOM_PREFIX));
+    num_layers_to_backbone_r1cs.insert(3, formatcp!("{}/Backbone3.r1cs", CIRCOM_PREFIX));
+    let mut num_layers_to_backbone = HashMap::new();
+    num_layers_to_backbone.insert(1, formatcp!("{}/Backbone1", CIRCOM_PREFIX));
+    num_layers_to_backbone.insert(2, formatcp!("{}/Backbone2", CIRCOM_PREFIX));
+    num_layers_to_backbone.insert(3, formatcp!("{}/Backbone3", CIRCOM_PREFIX));
+
     // Number of layers per step
     let arr_num_layers = [1, 2, 3];
     for num_layers in arr_num_layers {
         let root = current_dir().unwrap();
-        let backbone_r1cs = load_r1cs(&FileLocation::PathBuf(root.join(num_layers_to_backbone_r1cs.get(num_layers).unwrap())));
-        let backbone_witgen = root.join(num_layers_to_backbone.get(num_layers).unwrap());
+        let backbone_r1cs = load_r1cs(&FileLocation::PathBuf(root.join(num_layers_to_backbone_r1cs.get(&num_layers).unwrap())));
+        let backbone_witgen = root.join(num_layers_to_backbone.get(&num_layers).unwrap());
         let mimc3d_r1cs = load_r1cs(&FileLocation::PathBuf(root.join(MIMC3D_R1CS_F)));
         let mimc3d_wasm = root.join(MIMC3D_WASM_F);
     
@@ -380,7 +382,7 @@
         println!("==");
     
         println!("== Producing a CompressedSNARK using Spartan w/ IPA-PC");
-        let (_compressed_snark, spartan_proving_time, spartan_verifying_time = spartan(&pp, recursive_snark, num_steps, &inputs);
+        let (_compressed_snark, spartan_proving_time, spartan_verifying_time) = spartan(&pp, recursive_snark, num_steps, &inputs);
         println!("==");
     
         println!("** Total time to completion: ({:?})", start.elapsed());

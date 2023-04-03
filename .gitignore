@@ -7,3 +7,4 @@ nova/circom/tests/*.wtns
 nova/circom/tests/*.ptau
 models/mnist_cnn.pt
 models/Python*
+nova/circom_witness.wtns

@@ -6,7 +6,7 @@
 circom ../Backbone2.circom --r1cs --c --prime vesta
 
 # Generate the witness, primarily as a smoke test for the circuit
-
+make -C Backbone2_cpp/
 # Create out directory if it doesn't exist
 if [ ! -d "../out" ]; then
   echo "Directory 'out' does not exist. Creating directory 'out'."

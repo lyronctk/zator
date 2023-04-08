@@ -186,9 +186,9 @@
      if num_steps == 510 {
         for i in 0..num_steps {
             let a = if i > 0 {
-                &fwd_pass.backbone[i - 1].a;
+                &fwd_pass.backbone[i - 1].a
             } else {
-                &fwd_pass.head.a;
+                &fwd_pass.head.a
             };
             let priv_in = HashMap::from([
                 (String::from("a_prev"), json!(a)),
@@ -200,9 +200,9 @@
      } else if num_steps == 255 {
         for i in (0..510).step_by(2) {
             let a_prev_1 = if i > 0 {
-                &fwd_pass.backbone[i - 1].a;
+                &fwd_pass.backbone[i - 1].a
             } else {
-                &fwd_pass.head.a;
+                &fwd_pass.head.a
             };
             let a_prev_2 = &fwd_pass.backbone[i].a;
             let priv_in = HashMap::from([
@@ -218,9 +218,9 @@
     } else { // num_steps = 170
             for i in (0..510).step_by(3) {
                 let a_prev_1 = if i > 0 {
-                    &fwd_pass.backbone[i - 1].a;
+                    &fwd_pass.backbone[i - 1].a
                 } else {
-                    &fwd_pass.head.a;
+                    &fwd_pass.head.a
                 };
                 let a_prev_2 = &fwd_pass.backbone[i].a;
                 let a_prev_3 = &fwd_pass.backbone[i + 1].a;

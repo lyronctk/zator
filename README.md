@@ -40,7 +40,14 @@ Our model is trained on [MNIST](https://en.wikipedia.org/wiki/MNIST_database). T
 Negative numbers were handled by splitting the field. With all operations taken over a prime $p$, all values less than $floor(p/2)$ were treated as positive, and all values above this were treated as negative. Negative numbers with this setup wrap around to become large numbers in the field (e.g -1 maps to $p - 1$).
 
 ## Benchmarks 
-* [TODO]: table with layers & proving time
+We benchmark the performance on a 510 layer NN against different configuration of total recursive steps and number of layers per step. 
+
+| Number of Recursive Steps |  Number of Layers per Step |  Prover Time     |  Verifier Time |
+| ------------------------- | -------------------------- | ---------------- | -------------- |
+| 510                       | 1                          | 26966.845196061s | 24.368612649s  |
+| 255                       | 2                          | 29082.011583061s | 47.735558201s  |
+| 170                       | 3                          | 30226.823210226s | 62.657654495s  |
+
 * [TODO]: disclaimer that each layer is small, POC, many optimizations carried out in similar projects eg. https://arxiv.org/pdf/2210.08674.pdf
     * in particular, ideally have above table for ImageNet as well
 

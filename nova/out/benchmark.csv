@@ -1,4 +1,4 @@
-Number of Recrusive Steps, Number of Layers per Step, Prover Time, Verifier Time
+Number of Recursive Steps, Number of Layers per Step, Prover Time, Verifier Time
 510,1,26966.845196061s,24.368612649s
 255,2,29082.011583061s,47.735558201s
 170,3,30226.823210226s,62.657654495s

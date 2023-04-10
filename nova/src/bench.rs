@@ -343,7 +343,7 @@
  fn main() {
     // Create a benchmark file
     let mut file = std::fs::File::create("./out/benchmark.csv").unwrap();
-    file.write_all(b"Number of Recrusive Steps, Number of Layers per Step, Prover Time, Verifier Time\n").unwrap();
+    file.write_all(b"Number of Recursive Steps, Number of Layers per Step, Prover Time, Verifier Time\n").unwrap();
     let mut num_layers_to_backbone_r1cs = HashMap::new();
     num_layers_to_backbone_r1cs.insert(1, formatcp!("{}/Backbone1.r1cs", CIRCOM_PREFIX));
     num_layers_to_backbone_r1cs.insert(2, formatcp!("{}/Backbone2.r1cs", CIRCOM_PREFIX));

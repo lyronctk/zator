@@ -2,14 +2,14 @@
 
 There has been tremendous progress in the past year toward verifying neural network inference using SNARKs. Along this line of research, notable projects such as [EZKL](https://github.com/zkonduit/ezkl) and work by [D. Kang et al](https://arxiv.org/pdf/2210.08674.pdf) have been able to snark models as complex as a 50-layer MobileNetv2 on the Halo2 proving stack. 
 
-The primary constraint preventing these efforts from expanding to even deeper models is the fact that they attempt to fit the entire computation trace into a single circuit. With [Zator](https://github.com/lyronctk/zator), we wanted to explore verifying one layer at a time using recursive SNARKs, a class of SNARKs that enables an N-step (in our case, N-layer) repeated computation to be verified incrementally. We leverage a recent construction called [Nova](https://github.com/microsoft/Nova) that uses a folding scheme to reduce N instances of repeated computation into a single instance that can be verified at the cost of a single step. We looked to utilize the remarkably light recursive overhead of folding (10k constraints per step) to snark a network with 512 layers, which is as deep or deeper than the majority of production AI models today.
+The primary constraint preventing these efforts from expanding to even deeper models is the fact that they attempt to fit the entire computation trace into a single circuit. With [Zator](https://github.com/lyronctk/zator), we wanted to explore verifying one layer at a time using recursive SNARKs, a class of SNARKs that enables an N-step (in our case, N-layer) repeated computation to be verified incrementally. We leverage a recent construction called [Nova](https://github.com/microsoft/Nova) that uses a folding scheme to reduce N instances of repeated computation into a single instance. This instance can then be verified at the cost of a single step. We looked to utilize the remarkably light recursive overhead of folding (10k constraints per step) to snark a network with 512 layers (2.5B total constraints!), which is as deep or deeper than the majority of production AI models today.
 
 ## Snarking an arbitrary depth neural network
 ![](https://i.imgur.com/Hm0Yozf.png)
 
-We spent the last week hacking on a framework for verifying the computation trace for an arbitrary-depth neural network. Our final design composes the Nova and [Spartan](https://eprint.iacr.org/2019/550) proving systems. As we mentioned, Nova employs a folding scheme that instantiates a single relaxed R1CS instance at the beginning of the computation and folding it N times. Folding- the random linear combination- is a fast operation primarily made up of MSMs (rather than expensive FFTs) that results in a single instance that, when satisfied, proves the execution of all N steps. Upshot: expensive SNARK machinery only needs to be invoked to prove this *single* instance. This happens when we feed Nova's folded instance into Spartan to create a succinct proof.
+We spent the last week hacking on a framework for verifying the computation trace for an arbitrary-depth neural network. Our final design composes the Nova and [Spartan](https://eprint.iacr.org/2019/550) proving systems. As we mentioned, Nova employs a folding scheme that instantiates a single relaxed R1CS instance at the beginning of the computation and folding it N times. Folding- the random linear combination- is a fast operation composed of MSMs (rather than expensive, non-parallelizable FFTs) that results in a single claim that encompasses all N steps. Upshot: expensive SNARK machinery only needs to be invoked to prove this *single* instance. This happens when we feed Nova's folded instance into Spartan to create a succinct proof.
 
-The recursive structure for the network exists in the homogenous backbone. Head and tail layers are are proved separately since they cannot be parameterized in the same way as backbone layers (i.e. the head needs to project the input image into the space we work in and the tail needs to produce output probabilities).
+The recursive structure for the network exists in the homogenous backbone. Head and tail layers are are proved separately since they cannot be parameterized in the same way as backbone layers (i.e. the head circuit needs to project the input image into the space we work in and the tail circuit needs to produce output probabilities).
 
 ## Head, backbone, and tail circuit design 
 
@@ -23,7 +23,7 @@ The final layer in our neural network (the tail layer) corresponds to our tail c
 
 In the end, we have 3 total proofs: 1 for the head layer, 1 for all the backbone layers, and 1 for the final tail layer. A verifier would check the validity of all 3 proofs and trace through their public outputs to ensure that all 3 proofs were part of the same execution trace. Example proofs: [head](https://gist.github.com/varunshenoy/945fe6231b9a077160a0ae2360b854ab#file-head_layer_proof-json), backbone, [tail](https://gist.github.com/varunshenoy/945fe6231b9a077160a0ae2360b854ab#file-tail_layer_proof-json). 
 
-Our three-part design is motivated by Nova's requirement for homogenous computations during folding. In the short term, it is possible to support all types of layers in a single step circuit (single proof) via multiplexing. This is where we do the computations for all layer types every time and use a signal to determine which output activations to pass on. Multiplexing-based approaches, however, lead to bloated and redundant circuits. [SuperNova](https://eprint.iacr.org/2022/1758), the successor to Nova, is the long-term solution for heterogeneous layers.[^1]
+Our three-part design is motivated by Nova's requirement for homogenous computations during folding. In the short term, it is possible to support all types of layers in a single step circuit (single proof) via multiplexing. This is where we do the computations for all layer types every time and use a signal to determine which output activations to pass on. Multiplexing in the step circuit, however, lead to bloated circuits of size $O(|F| * L)$ for $L$ layer types of size $|F|$. [`](https://eprint.iacr.org/2022/1758), the successor to Nova, is the long-term solution for heterogeneous layers.[^1]
 
 [^1]: SuperNova's implementation is still currently under development. 
 
@@ -48,11 +48,9 @@ We benchmark the performance on a 510 layer NN against different configuration o
 | 255                       | 2                          | 29082.011583061s | 47.735558201s  |
 | 170                       | 3                          | 30226.823210226s | 62.657654495s  |
 
-* [TODO]: disclaimer that each layer is small, POC, many optimizations carried out in similar projects eg. https://arxiv.org/pdf/2210.08674.pdf
-    * in particular, ideally have above table for ImageNet as well
-
+These benchmarks were performed on an AWS instance without a GPU attached, which forgoes the significant advantage of built-in GPU support for the MSMs in Nova. 
 ## Acknowledgements
-* [Nalin](https://nibnalin.me/) for writing Nova-Scotia and guiding us throughout the project. He's a wizard.
+* [Nalin](https://nibnalin.me/) for writing Nova-Scotia, introducing us to Nova, and guiding us through the project.
 * [Hack Lodge](https://hacklodge.org/) for the mentorship, friends, & support.
 * [Srinath](http://srinathsetty.net/) for his work on Nova.
 * [Dr. Cathie](https://twitter.com/drCathieSo_eth) for her helpful circuit library for common NN operations.

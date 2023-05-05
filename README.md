@@ -50,6 +50,7 @@ We benchmark the performance on a 510 layer NN against different configuration o
 
 These benchmarks were performed on an AWS instance without a GPU attached, which forgoes the significant advantage of built-in GPU support for the MSMs in Nova. 
 ## Acknowledgements
+* [Dan Boneh](https://crypto.stanford.edu/~dabo/) for advising & supporting this project
 * [Nalin](https://nibnalin.me/) for writing Nova-Scotia, introducing us to Nova, and guiding us through the project.
 * [Hack Lodge](https://hacklodge.org/) for the mentorship, friends, & support.
 * [Srinath](http://srinathsetty.net/) for his work on Nova.
